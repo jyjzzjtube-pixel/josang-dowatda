@@ -42,9 +42,10 @@ function hunOf(ch){ return HUN[ch] || '뜻풀이 준비 중'; }
 let stack = [{screen:'home'}];
 function loadJSON(k){ try{ return JSON.parse(localStorage.getItem(k)); }catch(e){ return null; } }
 let myClan = loadJSON('josang_myClan');
+let authUser = loadJSON('josang_authUser');
 const curRoute = () => stack[stack.length-1];
 const find = (s,b) => CLANS.find(c=>c.surname===s && c.bon===b);
-const bonsOf = s => CLANS.filter(c=>c.surname===s).sort((a,b)=>popNum(b)-popNum(a));
+const bonsOf = s => CLANS.filter(c=>c.surname===s).sort((a,b)=>a.bon.localeCompare(b.bon,'ko'));
 function popNum(c){ const m=(c.population||'').match(/([\d,]+)\s*만/); return m?parseInt(m[1].replace(/,/g,'')):0; }
 function go(screen, params){ stack.push({screen, params:params||{}}); render(); }
 function back(){ if(stack.length>1){ stack.pop(); render(); } }
@@ -58,17 +59,72 @@ function notify(f){ const a=leads(); if(!a.some(x=>x.feature===f)){ a.push({feat
 /* ---- 출처/정확도 배지 ---- */
 function srcBadge(level, label){ return `<span class="src-badge ${level}">${label}</span>`; }
 function levelLabel(level){
-  return ({verified:'검증 완료', partial:'부분 확인', legend:'전승 분리', draft:'검증 전'})[level] || '확인 필요';
+  return ({verified:'공개자료 확인', partial:'추가 확인 중', legend:'전승·설화', draft:'확인 필요'})[level] || '확인 필요';
 }
 function factBadge(level){
   const cls = level==='verified' ? 'verified' : level==='legend' ? 'legend' : level==='draft' ? 'todo' : 'partial';
   return srcBadge(cls, levelLabel(level));
 }
 function norm(v){ return String(v||'').replace(/\s+/g,'').toLowerCase(); }
+function esc(v){ return String(v??'').replace(/[&<>"']/g, ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch])); }
+function displayQuery(v){ return esc(String(v||'').replace(/[<>]/g,'').trim()); }
 function nameTracks(){ return typeof NAME_TRACKS==='undefined' ? [] : NAME_TRACKS; }
 function findTrack(q){
   const key = norm(q);
   return nameTracks().find(t => t.id===q || key.includes(norm(t.title)) || key.includes(norm(t.surname+t.bon)) || key.includes(norm(t.bon)) || key===norm(t.surname));
+}
+function storyBadge(t){ return srcBadge(t?.isGenealogy ? 'primary' : 'story', t?.isGenealogy ? '본관 기록' : '족보와 구분된 이름 기록'); }
+function trackKind(t){ return t?.isGenealogy ? '본관 기록 트랙' : '이름 기록 트랙'; }
+function hanjaLine(t){ return t?.hanjaLine || `${t.bonHanja||''} ${t.surnameHanja||''}${t.surnameHanja?'氏':''}`.trim(); }
+
+/* ---- 테스트 회원/로그인 ---- */
+function authName(){ return authUser?.name || '방문자'; }
+function authPill(){
+  return `<button class="auth-pill ${authUser?'on':''}" data-act="auth-open">${authUser?`${esc(authName())} 님`:'테스트 로그인'}</button>`;
+}
+function authStrip(){
+  if(authUser){
+    return `<div class="auth-strip signed">
+      <div><b>${esc(authName())} 님</b><span>테스트 계정으로 로그인 중 · 실제 개인정보 전송 없음</span></div>
+      <button data-act="auth-logout">로그아웃</button>
+    </div>`;
+  }
+  return `<div class="auth-strip">
+    <div><b>회원가입·로그인 테스트</b><span>무료 무계정 이용은 그대로, 저장/예약 기능만 테스트합니다.</span></div>
+    <button data-act="auth-open">시작</button>
+  </div>`;
+}
+function openAuth(mode){
+  let m=$('authModal');
+  if(!m){ m=document.createElement('div'); m.id='authModal'; m.className='modal'; $('app').appendChild(m); }
+  const isJoin = mode==='join';
+  m.innerHTML=`<div class="modal-card auth-card">
+    <div class="modal-head"><div><div class="modal-title">${isJoin?'테스트 회원가입':'테스트 로그인'}</div>
+      <div class="modal-sub">서버 전송 없이 이 브라우저에만 저장됩니다.</div></div>
+      <div class="modal-close" data-act="auth-close" role="button" aria-label="닫기">×</div></div>
+    <div class="auth-tabs">
+      <button class="${isJoin?'on':''}" data-act="auth-switch" data-mode="join">회원가입</button>
+      <button class="${!isJoin?'on':''}" data-act="auth-switch" data-mode="login">로그인</button>
+    </div>
+    <label class="auth-field"><span>이름</span><input id="authName" value="${esc(authUser?.name||'')}" placeholder="예: 김민지"></label>
+    <label class="auth-field"><span>이메일</span><input id="authEmail" value="${esc(authUser?.email||'')}" placeholder="test@korean-roots.app"></label>
+    <button class="btn" data-act="${isJoin?'auth-join':'auth-login'}">${isJoin?'테스트 계정 만들기':'테스트 로그인'}</button>
+    <button class="btn btn-line" data-act="auth-demo">데모 계정으로 바로 보기</button>
+    <p class="auth-note">실제 인증·결제·문자 발송은 연결하지 않았습니다. 클라이언트 확인용 테스트 흐름입니다.</p>
+  </div>`;
+  requestAnimationFrame(()=>m.classList.add('on'));
+}
+function closeAuth(){ const m=$('authModal'); if(m){ m.classList.remove('on'); setTimeout(()=>{ if(m&&m.parentNode) m.remove(); },220); } }
+function saveAuth(name,email){
+  authUser = {name:name||'테스트 사용자', email:email||'test@korean-roots.app', mode:'test', ts:Date.now()};
+  localStorage.setItem('josang_authUser', JSON.stringify(authUser));
+  closeAuth(); toast(`${authName()} 님, 테스트 로그인되었습니다`); render();
+}
+function authFromForm(){
+  saveAuth(($('authName')?.value||'').trim(), ($('authEmail')?.value||'').trim());
+}
+function logoutAuth(){
+  authUser=null; localStorage.removeItem('josang_authUser'); toast('테스트 로그아웃되었습니다'); render();
 }
 
 /* ---- 렌더 ---- */
@@ -86,13 +142,13 @@ function renderAppbar(t){
   if(t.screen==='clan'){
     const c = find(t.params.surname, t.params.bon);
     ab.innerHTML = `<div class="back" role="button" tabindex="0" aria-label="뒤로" data-act="back">‹</div>
-      <div class="title" style="font-size:18px">${c.surname} ${c.bon}씨</div><div class="spacer"></div>`;
+      <div class="title" style="font-size:18px">${c.surname} ${c.bon}씨</div><div class="spacer"></div>${authPill()}`;
   } else if(t.screen==='nameTrack'){
     ab.innerHTML = `<div class="back" role="button" tabindex="0" aria-label="뒤로" data-act="back">‹</div>
-      <div class="title" style="font-size:18px">이름 길</div><div class="spacer"></div>`;
+      <div class="title" style="font-size:18px">이름 길</div><div class="spacer"></div>${authPill()}`;
   } else {
     ab.innerHTML = `<div class="seal" aria-hidden="true">姓</div>
-      <div class="title">조상이 도왔다</div><div class="sub">뿌리문화</div><div class="spacer"></div>`;
+      <div class="title">조상이 도왔다</div><div class="sub">루트지도</div><div class="spacer"></div>${authPill()}`;
   }
 }
 function renderNav(){
@@ -132,11 +188,11 @@ function bonOptions(s){
   return `<option value="__auto__">잘 모르겠어요</option>${list}`;
 }
 function nameTrackIntro(){
-  const tracks = nameTracks().slice(0,3).map(trackRow).join('');
+  const tracks = nameTracks().slice(0,5).map(trackRow).join('');
   return `<div class="name-track-card">
-    <div class="sec-label">이름 길</div>
-    <h3>족보에 없어도 당신의 뿌리는 있다</h3>
-    <p>희성·귀화성·본관 모름도 빈손으로 끝내지 않고, 확인된 기록과 지역을 분리해 보여줍니다.</p>
+    <div class="sec-label">이름 기록</div>
+    <h3>본관을 몰라도 이름의 기록부터 살펴볼 수 있습니다</h3>
+    <p>희성·귀화성·본관 모름·새 성씨는 특정 가계로 단정하지 않고, 확인 가능한 공개 기록과 생활 지역 스토리로 분리해 보여줍니다.</p>
     <div class="track-list">${tracks}</div>
     <button class="btn btn-line" data-act="goNameTrack" data-query="">이름 길 모두 보기</button>
   </div>`;
@@ -144,8 +200,27 @@ function nameTrackIntro(){
 function trackRow(t){
   return `<div class="track-row" data-act="goNameTrack" data-track="${t.id}">
     <div class="track-seal" style="--c:${t.accent}">${t.bonHanja}</div>
-    <div><div class="track-name">${t.title}</div><div class="track-meta">${t.type} · ${t.region}</div></div>
+    <div><div class="track-name">${t.title}</div><div class="track-meta">${trackKind(t)} · ${t.type} · ${t.region}</div></div>
     <span class="track-level ${t.verifyLevel}">${levelLabel(t.verifyLevel)}</span>
+  </div>`;
+}
+
+function quickRouteCards(){
+  const a = CLANS[0], b = nameTracks()[0];
+  return `<div class="quick-grid">
+    <div class="quick-card" data-act="goClan" data-surname="${a.surname}" data-bon="${a.bon}">
+      <span>본관 기록</span><b>${a.surname} ${a.bon}씨</b><em>${a.region} · 지도 보기</em>
+    </div>
+    <div class="quick-card alt" data-act="goNameTrack" data-track="${b.id}">
+      <span>이름 기록</span><b>${b.title}</b><em>${b.region} · 이름 길</em>
+    </div>
+  </div>`;
+}
+
+function homeMapPreview(){
+  return `<div class="home-map-preview" data-act="tab" data-tab="region">
+    <div><span>전국 루트 지도</span><b>본관 기록 · 관광 · 음식 · 이름 기록</b></div>
+    <button>지도 보기</button>
   </div>`;
 }
 
@@ -155,11 +230,14 @@ function screenHome(){
   const chips = CLANS.map(c=>`<span class="chip" data-act="goClan" data-surname="${c.surname}" data-bon="${c.bon}">${c.surname} ${c.bon}씨</span>`).join('');
   return `<div class="screen">
     <section class="hero">
-      <div class="hero-badge">姓 뿌리문화</div>
-      <h1 class="hero-title">내 이름에서 시작하는<br><em>대한민국 여행</em></h1>
-      <p class="hero-desc">당신의 성씨는 전국에 몇 명이나 될까요?<br>검색하면 조상·역사·문화·관광까지 한눈에 펼쳐집니다.</p>
+      <div class="hero-badge">로그인 없이 바로 시작</div>
+      <h1 class="hero-title">내 이름으로 시작하는<br><em>루트 지도</em></h1>
+      <p class="hero-desc">성씨·본관·지역·여행을 한 화면에서 보고, 족보가 없는 이름도 별도 스토리로 남깁니다.</p>
     </section>
+    ${authStrip()}
     ${searchCard()}
+    ${quickRouteCards()}
+    ${homeMapPreview()}
     ${nameTrackIntro()}
     <div class="quiz-card" data-act="quiz">
       <div class="quiz-ic">퀴</div>
@@ -190,7 +268,7 @@ function screenExplore(){
 function clanRow(c){
   return `<div class="clan-row" data-act="goClan" data-surname="${c.surname}" data-bon="${c.bon}">
     <div class="emblem" style="--c:${c.accent}">${c.bonHanja}</div>
-    <div class="info"><div class="nm">${c.surname} ${c.bon}씨${c.badge?` <span class="rank">${c.badge}</span>`:''}${c.verifyLevel==='draft'?` <span class="draft-tag">검증 전</span>`:''}</div><div class="tg">${c.tagline}</div></div>
+    <div class="info"><div class="nm">${c.surname} ${c.bon}씨${c.badge?` <span class="context-chip">${c.badge}</span>`:''}${c.verifyLevel==='draft'?` <span class="draft-tag">확인 필요</span>`:''}</div><div class="tg">${c.tagline}</div></div>
     <div class="arr" aria-hidden="true">›</div></div>`;
 }
 
@@ -206,10 +284,12 @@ function hook(icon, title, sub, feature){
 /* ---- 내 가문 ---- */
 function screenMine(){
   if(!myClan){
-    return `<div class="screen"><div class="empty">
+    return `<div class="screen">
+    ${authStrip()}
+    <div class="empty">
       <div class="big" aria-hidden="true">${IC.tree}</div><h3>아직 등록된 가문이 없어요</h3>
-      <p>성씨와 본관을 찾아 '내 가문으로 등록'하면<br>가계도와 가문 기록을 평생 보관할 수 있어요.</p>
-      <button class="btn" data-act="tab" data-tab="explore" style="max-width:240px;margin:0 auto">내 뿌리 찾으러 가기</button>
+      <p>성씨와 본관, 또는 이름 기록을 찾아<br>이 기기에 테스트 저장할 수 있어요.</p>
+      <button class="btn" data-act="tab" data-tab="explore" style="max-width:240px;margin:0 auto">이름 기록 찾기</button>
     </div></div>`;
   }
   const c = find(myClan.surname, myClan.bon);
@@ -228,7 +308,7 @@ function screenMine(){
     <div class="action">
       ${hook(IC.tree,'우리 가계도 만들기','가족 등록 · 후손에게 영구 보관','가계도')}
       ${hook(IC.book,'AI 가문 역사책','우리 가문 이야기를 책으로','가문역사책')}
-      ${hook(IC.crown,'프리미엄 멤버십','족보 열람 · 기록 보관 · AI 조상 해설','멤버십')}
+      ${hook(IC.crown,'기록 보관 알림','족보 열람이 아니라 테스트 저장·정정 알림','기록보관')}
     </div>
     <button class="btn btn-line" data-act="unregister" style="margin-top:8px">등록 가문 변경</button>
   </div>`;
@@ -238,7 +318,7 @@ function screenMine(){
 function screenRegion(){
   const items = [
     [IC.landmark,'지자체 관광관','전주·안동·경주·김해관','지자체관'],
-    [IC.bowl,'향토음식 백과사전','지역별 대표 음식 모아보기','향토음식백과'],
+    [IC.bowl,'향토음식 백과사전','지역별 음식 모아보기','향토음식백과'],
     [IC.gift,'지역 특산물 장터','밀키트·전통주·한과 구매','특산물장터'],
     [IC.ticket,'전통문화 체험 예약','한지·다도·한복·전통주','체험예약'],
     [IC.users,'종친회 전용 서비스','회원관리·전자족보·행사','종친회'],
@@ -249,13 +329,30 @@ function screenRegion(){
     <span class="soon">${done?'신청완료 ✓':'알림받기'}</span></div>`;}).join('');
   return `<div class="screen">
     <div class="sec-label">지역 둘러보기</div>
-    <h2 class="scr-h">뿌리에서 지역경제까지</h2>
-    <p class="muted" style="font-size:13px;margin:6px 0 14px">조상 → 관광 → 향토음식 → 특산물로 이어지는 서비스</p>
+    <h2 class="scr-h">지도에서 보는 이름의 길</h2>
+    <p class="muted" style="font-size:13px;margin:6px 0 14px">본관 연고지, 공개기록, 관광지, 맛집, 이름 기록을 레이어로 나눠 봅니다.</p>
+    ${worldMapSection()}
     ${items}
     <div class="card" style="margin-top:14px;text-align:center">
       <div class="serif" style="font-size:16px;color:var(--brand-text)">조상이 도왔다</div>
       <p class="muted" style="font-size:12px;margin-top:6px">모든 성씨와 뿌리는 동등합니다 · 이 앱은 가문의 우열을 가리지 않습니다<br>데이터=공개·검증 1차 자료 · 지도=OpenStreetMap(무료)</p>
     </div>
+  </div>`;
+}
+
+function worldMapSection(){
+  return `<div class="map-card world-map-card">
+    <div class="map-title-row">
+      <div><b>전국 루트 지도</b><span>지도 레이어를 껐다 켜며 구분합니다</span></div>
+    </div>
+    <div class="layer-controls four" aria-label="전국 지도 레이어">
+      <button class="layer-toggle on" data-act="toggleMapLayer" data-layer="family"><span class="dot family"></span>가문</button>
+      <button class="layer-toggle on" data-act="toggleMapLayer" data-layer="tour"><span class="dot tour"></span>관광</button>
+      <button class="layer-toggle on" data-act="toggleMapLayer" data-layer="food"><span class="dot food"></span>맛집</button>
+      <button class="layer-toggle on" data-act="toggleMapLayer" data-layer="story"><span class="dot story"></span>이름기록</button>
+    </div>
+    <div id="worldMap"></div>
+    <div class="map-note">본관 기록은 CLANS, 이름 기록은 별도 스토리 트랙입니다 · 좌표는 지역 중심 표시</div>
   </div>`;
 }
 
@@ -267,14 +364,14 @@ function screenNameTrack(p){
   if(!track){
     return `<div class="screen">
       <section class="name-hero">
-        <div class="sec-label">이름 길</div>
-        <h2>빈손 0%로 두지 않습니다</h2>
-        <p>${query?`「${query}」 검색 결과가 아직 가문 데이터에는 없습니다.`:'족보·본관을 몰라도 시작할 수 있는 별도 길입니다.'} 확인된 기록만 보여주고, 모르는 것은 모른다고 표시합니다.</p>
+        <div class="sec-label">이름 기록</div>
+        <h2>본관을 몰라도 이름의 기록부터 살펴볼 수 있습니다</h2>
+        <p>${query?`「${displayQuery(query)}」 검색 결과가 아직 본관 기록에는 없습니다.`:'본관을 몰라도 시작할 수 있는 별도 길입니다.'} 이 화면은 족보와 구분된 이름·지역·공개자료 안내입니다.</p>
         ${factBadge('partial')}
       </section>
       <div id="nameMap"></div>
-      <div class="card origin"><h4>안내</h4><p>검색에서 바로 잡히지 않는 이름은 희성·귀화성·본관 미상 가능성을 분리해 확인합니다. Gemini 2출처 교차검증 전까지는 검증 완료로 올리지 않습니다.</p></div>
-      <div class="row-head">부분 확인된 이름 길</div>
+      <div class="card origin"><h4>안내</h4><p>검색에서 바로 잡히지 않는 이름은 희성·귀화성·본관 미상 가능성을 분리해 확인합니다. 이 화면은 가계 증명이나 전자족보가 아니며, Gemini 2출처 교차검증 전까지는 공개자료 확인으로 올리지 않습니다.</p></div>
+      <div class="row-head">추가 확인 중인 이름 기록</div>
       <div class="track-list">${rows}</div>
     </div>`;
   }
@@ -282,16 +379,16 @@ function screenNameTrack(p){
     <section class="detail-hero" style="--c:${track.accent}">
       <div class="emblem" style="--c:${track.accent}">${track.bonHanja}</div>
       <div class="nm">${track.title}</div>
-      <div class="hanja">${track.bonHanja} ${track.surnameHanja}氏</div>
+      <div class="hanja">${hanjaLine(track)}</div>
       <div class="tg">“${track.badge}”</div>
       <div class="meta">${track.type} · ${track.region}</div>
-      <div>${factBadge(track.verifyLevel)}</div>
+      <div>${storyBadge(track)} ${factBadge(track.verifyLevel)}</div>
     </section>
     <div id="nameMap"></div>
     <p class="story">${track.story}</p>
-    <div class="card origin"><h4>유래</h4><p>${track.origin}</p>${factBadge(track.verifyLevel)}</div>
+    <div class="card origin"><h4>${track.isGenealogy?'유래':'지역 스토리'}</h4><p>${track.origin}</p>${storyBadge(track)} ${factBadge(track.verifyLevel)}</div>
     <div class="card"><h4>출처 메모</h4>${track.sources.map((s,i)=>`<div class="source-line"><b>${i+1}</b><span>${s}</span></div>`).join('')}
-      <div class="disclaimer">Gemini 프로 2출처 교차검증 전에는 검증 완료로 승격하지 않습니다. 좌표는 지역 중심 표시이며, 세부 주소로 단정하지 않습니다.</div></div>
+      <div class="disclaimer">${track.isGenealogy?'본관 기록을 참고하지만 앱의 표기는 안내용입니다.':'이 트랙은 족보와 구분된 이름 기록입니다. 이름·성씨·생활 지역을 연결해 보는 스토리 안내입니다.'} Gemini 프로 2출처 교차검증 전에는 공개자료 확인으로 승격하지 않습니다. 좌표는 지역 중심 표시이며, 세부 주소로 단정하지 않습니다.</div></div>
     <div class="row-head">다른 이름 길</div>
     <div class="track-list">${nameTracks().filter(x=>x.id!==track.id).map(trackRow).join('')}</div>
   </div>`;
@@ -312,9 +409,9 @@ function screenClan(p){
       <div class="nm">${c.surname} ${c.bon}씨</div>
       <div class="hanja" aria-label="${c.bon} ${c.surname}씨">${c.bonHanja} ${c.surnameHanja}氏</div>
       <div class="tg">“${c.tagline}”</div>
-      ${c.badge?`<div class="hero-rank">${c.badge} · ${c.population}</div>`:''}
+      ${c.badge?`<div class="hero-context">${c.badge} · ${c.population}</div>`:''}
       <div class="meta">시조 ${c.founder} · ${c.epoch} · ${c.region}</div>
-      <div>${c.verifyLevel==='draft' ? srcBadge('todo','AI 초안 · 사실 검증 전 (인구는 추정치)') : srcBadge('primary', `통계청 ${c.populationYear||'2015'} 인구주택총조사`)}</div>
+      <div>${c.verifyLevel==='draft' ? srcBadge('todo','AI 초안 · 확인 필요') : srcBadge('primary', `통계청 ${c.populationYear||'2015'} 인구주택총조사`)}</div>
       <button class="hanja-btn" data-act="hanja" data-surname="${c.surname}" data-bon="${c.bon}">${IC.pen} 한자 따라쓰기</button>
     </div>
     ${also}
@@ -322,7 +419,7 @@ function screenClan(p){
     <div id="subview">${subView(c, sub)}</div>
     <div class="action detail-actions">
       <div class="disclaimer">${c.verifyLevel==='draft'
-        ? '<b style="color:var(--fact-todo)">이 가문 정보는 AI가 1차 정리한 초안으로, 아직 사실 검증 전입니다.</b> 통계청·한국민족문화대백과 등 공신력 있는 자료로 교차검증 후 업데이트됩니다. '
+        ? '<b style="color:var(--fact-todo)">이 가문 정보는 AI가 1차 정리한 초안으로, 아직 확인 필요 상태입니다.</b> 통계청·한국민족문화대백과 등 공신력 있는 자료로 교차검증 후 업데이트됩니다. '
         : `공개 자료·족보·종친회 자료를 바탕으로 정리했으며, 일부는 전승이라 가문에 따라 견해가 다를 수 있습니다. 인구는 통계청 ${c.populationYear||'2015'} 기준입니다. `}<span class="fix" data-act="notify" data-feature="정정요청">잘못된 정보 정정 요청하기</span></div>
     </div>
   </div>`;
@@ -400,10 +497,10 @@ function syncSticky(t){
 
 /* ---- 지도 ---- */
 let MAP, MAP_LAYERS={};
-let MAP_LAYER_STATE={family:true,tour:true,food:true};
+let MAP_LAYER_STATE={family:true,tour:true,food:true,story:true};
 const MAP_POINT_CATALOG = {
   "경기전":{lat:35.8157,lng:127.1497,type:"tour",desc:"태조 어진 봉안 유적",verifyLevel:"verified"},
-  "전주 한옥마을":{lat:35.8151,lng:127.1530,type:"tour",desc:"전주 대표 한옥 관광권역",verifyLevel:"verified"},
+  "전주 한옥마을":{lat:35.8151,lng:127.1530,type:"tour",desc:"전주 한옥 관광권역",verifyLevel:"verified"},
   "전동성당":{lat:35.8136,lng:127.1497,type:"tour",desc:"전주 한옥마을 인근 근대 문화유산",verifyLevel:"verified"},
   "오목대":{lat:35.8130,lng:127.1574,type:"tour",desc:"이성계 관련 전주 유적",verifyLevel:"verified"},
   "전주향교":{lat:35.8122,lng:127.1577,type:"tour",desc:"조선시대 지방 교육기관",verifyLevel:"verified"},
@@ -421,7 +518,7 @@ const MAP_POINT_CATALOG = {
   "국립김해박물관":{lat:35.2350,lng:128.8736,type:"tour",desc:"가야 문화 박물관",verifyLevel:"verified"},
   "구지봉":{lat:35.2372,lng:128.8728,type:"tour",desc:"가락국 건국 설화 유적",verifyLevel:"legend"},
   "돼지국밥(경남)":{lat:35.2285,lng:128.8760,type:"food",desc:"경남권 향토음식",verifyLevel:"partial"},
-  "안동 하회마을":{lat:36.5388,lng:128.5187,type:"tour",desc:"안동 대표 전통마을",verifyLevel:"verified"},
+  "안동 하회마을":{lat:36.5388,lng:128.5187,type:"tour",desc:"안동 전통마을",verifyLevel:"verified"},
   "병산서원":{lat:36.5450,lng:128.5437,type:"tour",desc:"안동 서원",verifyLevel:"verified"},
   "월영교":{lat:36.5765,lng:128.7600,type:"tour",desc:"안동 호반 산책 명소",verifyLevel:"verified"},
   "도산서원":{lat:36.7275,lng:128.8431,type:"tour",desc:"퇴계 이황 관련 서원",verifyLevel:"verified"},
@@ -432,6 +529,14 @@ function mapPopup(p){
 }
 function mapIcon(type){
   return L.divIcon({className:'',html:`<div class="map-marker ${type}"></div>`,iconSize:[18,18],iconAnchor:[9,9]});
+}
+function mapFallback(el, msg){
+  el.innerHTML = `<div class="map-fallback"><b>지도를 준비 중입니다</b><span>${msg}</span></div>`;
+}
+function withLeaflet(el, fn){
+  if(!el) return;
+  if(typeof L !== 'undefined'){ fn(); return; }
+  mapFallback(el, '지도 라이브러리를 다시 불러오고 있어요. 네트워크가 막히면 레이어 목록으로 계속 볼 수 있습니다.');
 }
 function catalogPoint(name, fallbackType){
   const p = MAP_POINT_CATALOG[name];
@@ -462,41 +567,81 @@ function toggleMapLayer(type){
 }
 function buildMap(c){
   const el = $('map'); if(!el) return;
-  if(MAP){ MAP.remove(); MAP=null; }
-  MAP = L.map('map',{zoomControl:true,attributionControl:true}).setView([c.lat,c.lng],11);
-  /* OSM 표준 타일 = 무료·무키, 한국 내 지명을 한글로 렌더(네이버 익숙도를 0원으로) */
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-    {maxZoom:19,subdomains:'abc',attribution:'© OpenStreetMap contributors'}).addTo(MAP);
-  const points = clanMapPoints(c);
-  MAP_LAYERS = {};
-  Object.entries(points).forEach(([type,items])=>{
-    MAP_LAYERS[type]=L.layerGroup(items.map(p=>L.marker([p.lat,p.lng],{icon:mapIcon(type)}).bindPopup(mapPopup(p))));
+  withLeaflet(el, ()=>{
+    if(MAP){ MAP.remove(); MAP=null; }
+    MAP = L.map('map',{zoomControl:true,attributionControl:true}).setView([c.lat,c.lng],11);
+    /* OSM 표준 타일 = 무료·무키, 한국 내 지명을 한글로 렌더(네이버 익숙도를 0원으로) */
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+      {maxZoom:19,subdomains:'abc',attribution:'© OpenStreetMap contributors'}).addTo(MAP);
+    const points = clanMapPoints(c);
+    MAP_LAYERS = {};
+    Object.entries(points).forEach(([type,items])=>{
+      MAP_LAYERS[type]=L.layerGroup(items.map(p=>L.marker([p.lat,p.lng],{icon:mapIcon(type)}).bindPopup(mapPopup(p))));
+    });
+    const route = [...points.family, ...points.tour, ...points.food].filter(p=>Number.isFinite(p.lat)&&Number.isFinite(p.lng));
+    if(route.length>1){
+      L.polyline(route.map(p=>[p.lat,p.lng]),{color:'#E85D3F',weight:3,opacity:.72,dashArray:'6 8'}).addTo(MAP);
+    }
+    updateMapLayerUI();
+    if(route.length>1) MAP.fitBounds(L.latLngBounds(route.map(p=>[p.lat,p.lng])).pad(.18));
+    else MAP.setView([c.lat,c.lng],11);
+    const first = points.family[0];
+    if(first) L.popup().setLatLng([first.lat,first.lng]).setContent(mapPopup(first)).openOn(MAP);
+    setTimeout(()=>MAP.invalidateSize(),120);
+    setTimeout(()=>MAP.invalidateSize(),420);
   });
-  const route = [...points.family, ...points.tour, ...points.food].filter(p=>Number.isFinite(p.lat)&&Number.isFinite(p.lng));
-  if(route.length>1){
-    L.polyline(route.map(p=>[p.lat,p.lng]),{color:'#A8341C',weight:3,opacity:.72,dashArray:'6 8'}).addTo(MAP);
-  }
-  updateMapLayerUI();
-  if(route.length>1) MAP.fitBounds(L.latLngBounds(route.map(p=>[p.lat,p.lng])).pad(.18));
-  else MAP.setView([c.lat,c.lng],11);
-  const first = points.family[0];
-  if(first) L.popup().setLatLng([first.lat,first.lng]).setContent(mapPopup(first)).openOn(MAP);
-  setTimeout(()=>MAP.invalidateSize(),120);
 }
 function buildNameTrackMap(track){
   const el = $('nameMap'); if(!el) return;
-  if(MAP){ MAP.remove(); MAP=null; }
-  const points = track ? [track] : nameTracks();
-  MAP = L.map('nameMap',{zoomControl:true,attributionControl:true}).setView([36.5,127.8],6);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-    {maxZoom:19,subdomains:'abc',attribution:'© OpenStreetMap contributors'}).addTo(MAP);
-  points.forEach(p=>{
-    L.marker([p.lat,p.lng],{icon:mapIcon('family')}).addTo(MAP)
-      .bindPopup(`<b>${p.title}</b><br>${p.region}<br><span class="popup-level ${p.verifyLevel}">${levelLabel(p.verifyLevel)}</span>`);
+  withLeaflet(el, ()=>{
+    if(MAP){ MAP.remove(); MAP=null; }
+    const points = (track ? [track] : nameTracks()).filter(p=>Number.isFinite(p.lat)&&Number.isFinite(p.lng));
+    MAP = L.map('nameMap',{zoomControl:true,attributionControl:true}).setView([36.5,127.8],6);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+      {maxZoom:19,subdomains:'abc',attribution:'© OpenStreetMap contributors'}).addTo(MAP);
+    points.forEach(p=>{
+      L.marker([p.lat,p.lng],{icon:mapIcon(p.isGenealogy?'family':'story')}).addTo(MAP)
+        .bindPopup(`<b>${p.title}</b><br>${p.region}<br>${trackKind(p)}<br><span class="popup-level ${p.verifyLevel}">${levelLabel(p.verifyLevel)}</span>`);
+    });
+    if(points.length>1) MAP.fitBounds(L.latLngBounds(points.map(p=>[p.lat,p.lng])).pad(.25));
+    else if(points[0]) MAP.setView([points[0].lat,points[0].lng],8);
+    setTimeout(()=>MAP.invalidateSize(),120);
+    setTimeout(()=>MAP.invalidateSize(),420);
   });
-  if(points.length>1) MAP.fitBounds(L.latLngBounds(points.map(p=>[p.lat,p.lng])).pad(.25));
-  else if(points[0]) MAP.setView([points[0].lat,points[0].lng],8);
-  setTimeout(()=>MAP.invalidateSize(),120);
+}
+function worldMapPoints(){
+  const family = CLANS.filter(c=>Number.isFinite(c.lat)&&Number.isFinite(c.lng)).map(c=>({
+    name:`${c.surname} ${c.bon}씨`, lat:c.lat, lng:c.lng, type:'family', desc:`가문/본관 기록 · ${c.region}`, verifyLevel:c.verifyLevel||'partial'
+  }));
+  const seen={};
+  const allTours = [], allFood = [];
+  CLANS.forEach(c=>{
+    [...(c.course?.day1||[]), ...(c.course?.day2||[])].forEach(n=>{ const p=catalogPoint(n,'tour'); if(p&&!seen[`t-${n}`]){ seen[`t-${n}`]=1; allTours.push(p); } });
+    [...(c.food||[]), ...(c.specialty||[])].forEach(n=>{ const p=catalogPoint(n,'food'); if(p&&!seen[`f-${n}`]){ seen[`f-${n}`]=1; allFood.push(p); } });
+  });
+  const story = nameTracks().filter(p=>Number.isFinite(p.lat)&&Number.isFinite(p.lng)).map(p=>({
+    name:p.title, lat:p.lat, lng:p.lng, type:'story', desc:`${trackKind(p)} · ${p.region}`, verifyLevel:p.verifyLevel||'partial'
+  }));
+  return {family,tour:allTours,food:allFood,story};
+}
+function buildWorldMap(){
+  const el = $('worldMap'); if(!el) return;
+  withLeaflet(el, ()=>{
+    if(MAP){ MAP.remove(); MAP=null; }
+    MAP = L.map('worldMap',{zoomControl:true,attributionControl:true}).setView([36.5,127.8],6);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+      {maxZoom:19,subdomains:'abc',attribution:'© OpenStreetMap contributors'}).addTo(MAP);
+    const points = worldMapPoints();
+    MAP_LAYERS = {};
+    Object.entries(points).forEach(([type,items])=>{
+      MAP_LAYERS[type]=L.layerGroup(items.map(p=>L.marker([p.lat,p.lng],{icon:mapIcon(type)}).bindPopup(mapPopup(p))));
+    });
+    updateMapLayerUI();
+    const route = Object.values(points).flat().filter(p=>Number.isFinite(p.lat)&&Number.isFinite(p.lng));
+    if(route.length>1) MAP.fitBounds(L.latLngBounds(route.map(p=>[p.lat,p.lng])).pad(.16));
+    setTimeout(()=>MAP.invalidateSize(),120);
+    setTimeout(()=>MAP.invalidateSize(),420);
+  });
 }
 
 /* ---- 한자 따라쓰기 (Hanzi Writer) ---- */
@@ -599,13 +744,14 @@ function doSearch(){
     return;
   }
   const s=$('selS').value; let b=$('selB').value;
-  if(b==='__auto__'){ go('nameTrack',{query:`${s} 씨 본관 모름`}); return; }   /* 자동 대표본관 귀속 금지(추측·쏠림 방지) */
+  if(b==='__auto__'){ go('nameTrack',{query:`${s} 씨 본관 모름`}); return; }   /* 자동 특정 본관 귀속 금지(추측·쏠림 방지) */
   go('clan',{surname:s, bon:b});
 }
 
 /* ---- 렌더 후 처리 ---- */
 function postRender(t){
   if(t.screen==='home'||t.screen==='explore') wireSearch();
+  if(t.screen==='region') buildWorldMap();
   if(t.screen==='clan' && (t.params.sub||'뿌리')==='여행'){ buildMap(find(t.params.surname,t.params.bon)); }
   if(t.screen==='nameTrack'){ buildNameTrackMap(t.params.track ? findTrack(t.params.track) : findTrack(t.params.query)); }
   syncSticky(t);
@@ -626,6 +772,13 @@ document.addEventListener('click', e=>{
   else if(a==='register') registerClan(el.dataset.surname, el.dataset.bon);
   else if(a==='unregister') unregister();
   else if(a==='notify') notify(el.dataset.feature);
+  else if(a==='auth-open') openAuth('join');
+  else if(a==='auth-switch') openAuth(el.dataset.mode);
+  else if(a==='auth-close') closeAuth();
+  else if(a==='auth-join') authFromForm();
+  else if(a==='auth-login') authFromForm();
+  else if(a==='auth-demo') saveAuth('루트 탐색자','demo@korean-roots.app');
+  else if(a==='auth-logout') logoutAuth();
   else if(a==='hanja') openHanja(el.dataset.surname, el.dataset.bon);
   else if(a==='hanja-close') closeHanja();
   else if(a==='hz-animate') hzAnimate();
