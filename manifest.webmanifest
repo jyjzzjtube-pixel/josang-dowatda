@@ -1,0 +1,15 @@
+{
+  "name": "조상이 도왔다",
+  "short_name": "조상이도왔다",
+  "description": "내 이름에서 시작하는 대한민국 여행 — 성씨·족보·문화관광 플랫폼",
+  "lang": "ko",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#E7E3DC",
+  "theme_color": "#F6F4F0",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
