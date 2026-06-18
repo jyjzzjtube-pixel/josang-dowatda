@@ -44,6 +44,7 @@ function loadJSON(k){ try{ return JSON.parse(localStorage.getItem(k)); }catch(e)
 function loadSessionJSON(k){ try{ return JSON.parse(sessionStorage.getItem(k)); }catch(e){ return null; } }
 let myClan = loadJSON('josang_myClan');
 let authUser = loadSessionJSON('josang_authUser');
+let searchMode = 'genealogy';
 const curRoute = () => stack[stack.length-1];
 const find = (s,b) => CLANS.find(c=>c.surname===s && c.bon===b);
 const bonsOf = s => CLANS.filter(c=>c.surname===s).sort((a,b)=>a.bon.localeCompare(b.bon,'ko'));
@@ -203,16 +204,20 @@ function renderScreen(t){
 /* ---- 검색 카드 ---- */
 function searchCard(mode){
   const primary = mode === 'primary';
+  const nameMode = searchMode === 'name';
   const sList = [...new Set(CLANS.map(c=>c.surname))];
   const sOpts = sList.map(s=>`<option value="${s}">${s} 씨</option>`).join('');
   return `<div class="search-card ${primary?'primary-search':''}">
-    ${primary?`<div class="search-kicker">이름 하나로 시작</div><h2>본관을 알아도, 몰라도 바로 찾기</h2><p>출처 등급이 있는 역사 문헌 기록과 성씨·연원 기록을 먼저 나눠 보여줍니다.</p>`:''}
-    <div class="free-field"><label>자유 입력</label><input id="freeName" aria-label="성씨 또는 이름 길 검색" placeholder="예: 화산 이, 설, 본관을 모르면 그대로 입력"></div>
-    <div class="search-row">
+    ${primary?`<div class="search-kicker">이름 하나로 시작</div><h2>${nameMode?'족보 없는 성씨도 루트 보기':'본관을 알아도, 몰라도 바로 찾기'}</h2><p>${nameMode?'본관 기록으로 단정하지 않고 생활 지역·가족 기억·공개 기록을 성씨·연원 기록으로 안내합니다.':'출처 등급이 있는 역사 문헌 기록과 성씨·연원 기록을 먼저 나눠 보여줍니다.'}</p>`:''}
+    ${searchModeSwitch()}
+    <div class="free-field"><label>${nameMode?'성씨·이름 상황':'자유 입력'}</label><input id="freeName" aria-label="성씨 또는 이름 길 검색" placeholder="${nameMode?'예: 설, 화산 이, 귀화성, 본관 모름':'예: 전주 이, 경주 김, 본관을 모르면 그대로 입력'}"></div>
+    ${nameMode?`<div class="search-row one">
+      <div class="field"><label>분류</label><select id="selTrack" aria-label="성씨·연원 기록 분류">${trackOptions()}</select></div>
+    </div>`:`<div class="search-row">
       <div class="field"><label>성씨</label><select id="selS" aria-label="성씨">${sOpts}</select></div>
       <div class="field"><label>본관</label><select id="selB" aria-label="본관">${bonOptions(sList[0])}</select></div>
-    </div>
-    <button class="btn" data-act="search">내 이름으로 루트 보기</button>
+    </div>`}
+    <button class="btn" data-act="search">${nameMode?'성씨·연원 루트 보기':'내 이름으로 루트 보기'}</button>
   </div>`;
 }
 function trustRail(){
@@ -237,6 +242,20 @@ function homePathBar(){
 function bonOptions(s){
   const list = bonsOf(s).map(c=>`<option value="${c.bon}">${c.bon} 본관</option>`).join('');
   return `<option value="__auto__">잘 모르겠어요</option>${list}`;
+}
+function searchModeSwitch(){
+  const items = [
+    ['genealogy','족보 있는 성씨','본관 기록'],
+    ['name','족보 없는 성씨','성씨·연원 기록']
+  ];
+  return `<div class="mode-switch" role="tablist" aria-label="검색 모드">${items.map(([id,label,meta])=>`
+    <button type="button" class="${searchMode===id?'on':''}" role="tab" aria-selected="${searchMode===id?'true':'false'}" data-act="searchMode" data-mode="${id}">
+      <b>${label}</b><span>${meta}</span>
+    </button>`).join('')}</div>`;
+}
+function trackOptions(){
+  const opts = nameTracks().map(t=>`<option value="${esc(t.id)}">${esc(trackGroup(t))} · ${esc(t.title)}</option>`).join('');
+  return `<option value="__auto__">상황에 맞게 안내</option>${opts}`;
 }
 function nameTrackIntro(){
   const tracks = nameTracks().slice(0,5).map(trackRow).join('');
@@ -950,12 +969,18 @@ function toast(msg){ let el=$('toast'); if(!el){el=document.createElement('div')
 
 /* ---- 검색 셀렉트 연동 ---- */
 function wireSearch(){
-  const selS=$('selS'), selB=$('selB'), free=$('freeName'); if(!selS) return;
-  selS.addEventListener('change',()=>{ selB.innerHTML = bonOptions(selS.value); });
+  const selS=$('selS'), selB=$('selB'), free=$('freeName');
+  if(selS && selB) selS.addEventListener('change',()=>{ selB.innerHTML = bonOptions(selS.value); });
   if(free) free.addEventListener('keydown',e=>{ if(e.key==='Enter') doSearch(); });
 }
 function doSearch(){
   const free = ($('freeName')?.value || '').trim();
+  if(searchMode === 'name'){
+    const selected = $('selTrack')?.value || '__auto__';
+    if(selected !== '__auto__'){ go('nameTrack',{track:selected, query:free}); return; }
+    go('nameTrack',{query:free || '본관 모름'});
+    return;
+  }
   if(free){
     const exact = CLANS.find(c=>norm(free).includes(norm(c.surname+c.bon)) || norm(free).includes(norm(c.bon+c.surname)));
     if(exact){ go('clan',{surname:exact.surname, bon:exact.bon}); return; }
@@ -986,6 +1011,7 @@ document.addEventListener('click', e=>{
   else if(a==='goNameTrack') go('nameTrack',{track:el.dataset.track, query:el.dataset.query||''});
   else if(a==='goMine') tab('mine');
   else if(a==='sub'){ curRoute().params.sub = el.dataset.sub; render(); }
+  else if(a==='searchMode'){ searchMode = el.dataset.mode || 'genealogy'; render(); }
   else if(a==='search') doSearch();
   else if(a==='toggleMapLayer') toggleMapLayer(el.dataset.layer);
   else if(a==='register') registerClan(el.dataset.surname, el.dataset.bon);
@@ -1014,5 +1040,5 @@ document.addEventListener('click', e=>{
 /* ---- 부팅 ---- */
 render();
 if('serviceWorker' in navigator){
-  navigator.serviceWorker.register('sw.js?v=28').then(reg => reg.update()).catch(()=>{});
+  navigator.serviceWorker.register('sw.js?v=29').then(reg => reg.update()).catch(()=>{});
 }

@@ -128,6 +128,7 @@ h2.scr-h{font-size:24px;font-weight:700;letter-spacing:0;color:var(--ink);line-h
 .primary-search h2{font-size:20px;font-weight:700;line-height:1.25;color:var(--ink);letter-spacing:0}
 .primary-search p{font-size:13px;color:var(--sub);line-height:1.5;margin:6px 0 14px}
 .search-row{display:flex;gap:10px;margin-bottom:12px}
+.search-row.one{display:block}
 .search-row .field,.free-field{flex:1;position:relative}
 .free-field{margin-bottom:12px}
 .search-row label,.free-field label{position:absolute;top:8px;left:14px;font-size:10.5px;color:var(--faint);font-weight:700;letter-spacing:0}
@@ -139,6 +140,15 @@ h2.scr-h{font-size:24px;font-weight:700;letter-spacing:0;color:var(--ink);line-h
   background-repeat:no-repeat;background-position:right 12px center}
 .free-field input::placeholder{color:#A59D8E;font-weight:500}
 .search-row select:focus,.free-field input:focus{outline:none;border-color:var(--brand)}
+.mode-switch{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin:13px 0 12px;padding:4px;border:1px solid var(--line);
+  background:var(--surface-2);border-radius:15px}
+.mode-switch button{min-width:0;border:0;background:transparent;color:var(--sub);border-radius:11px;padding:9px 7px 8px;
+  cursor:pointer;text-align:left;transition:background .16s,color .16s,box-shadow .16s,transform .12s}
+.mode-switch button:active{transform:scale(.99)}
+.mode-switch button b{display:block;font-size:13px;font-weight:700;letter-spacing:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mode-switch button span{display:block;font-size:10.5px;font-weight:700;line-height:1.25;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;opacity:.78}
+.mode-switch button.on{background:var(--surface);color:var(--brand-text);box-shadow:var(--sh-1)}
+.mode-switch button.on span{color:var(--ink-soft);opacity:.72}
 .trust-rail{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin:10px 0}
 .trust-rail div{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 6px;text-align:center}
 .trust-rail b{display:block;font-size:12px;font-weight:700;color:var(--ink)}
