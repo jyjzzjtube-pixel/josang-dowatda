@@ -289,7 +289,7 @@ function searchCard(mode){
   const sList = [...new Set(CLANS.map(c=>c.surname))];
   const sOpts = sList.map(s=>`<option value="${s}">${s} 씨</option>`).join('');
   return `<div class="search-card ${primary?'primary-search':''}">
-    ${primary?`<div class="search-kicker">이름 하나로 시작</div><h2>어디서 시작할까요?</h2><p>${nameMode?'성씨만 알거나 아직 잘 모를 때도 지역·기억·공개 자료로 루트지도를 열 수 있어요.':'성씨와 본관을 알고 있을 때는 문헌 기록부터 차분히 확인합니다.'}</p>`:''}
+    ${primary?`<div class="search-kicker">15초 루트 생성</div><h2>확인 방식 선택</h2><p>${nameMode?'성씨만 알거나 아직 잘 모를 때도 지역·기억·공개 자료로 루트지도를 열 수 있어요.':'성씨와 본관을 알고 있을 때는 문헌 기록부터 차분히 확인합니다.'}</p>`:''}
     ${searchModeSwitch()}
     <div class="free-field"><label>${nameMode?'아는 단서':'성씨·본관·지역'}</label><input id="freeName" aria-label="성씨 또는 이름 길 검색" placeholder="${nameMode?'예: 설, 화산 이, 가족이 오래 산 지역':'예: 전주 이, 경주 김, 안동'}"></div>
     ${nameMode?`<div class="search-row one">
@@ -299,7 +299,7 @@ function searchCard(mode){
       <div class="field"><label>성씨</label><select id="selS" aria-label="성씨">${sOpts}</select></div>
       <div class="field"><label>본관</label><select id="selB" aria-label="본관">${bonOptions(sList[0])}</select></div>
     </div>`}
-    <button class="btn" data-act="search">${nameMode?'넓게 루트지도 열기':'기록으로 루트지도 열기'}</button>
+    <button class="btn" data-act="search">${nameMode?'15초 루트카드 만들기':'15초 루트카드 만들기'}</button>
   </div>`;
 }
 function trustRail(){
@@ -356,10 +356,10 @@ const MISSION_ITEMS = [
 ];
 function missionPanel(scope,label){
   const state = missionState();
+  const done = MISSION_ITEMS.filter(([id])=>state[`${scope}:${id}`]).length;
   return `<section class="mission-panel">
-    <div class="sec-label">지역 미션 카드</div>
-    <h3>${esc(label || '오늘의 지역 미션')}</h3>
-    <p>공부처럼 무겁지 않게, 이름에서 지역으로 이어지는 작은 행동을 체크합니다.</p>
+    <div class="sec-label">뿌리여권 · 지역 미션 카드</div>
+    <div class="passport-head"><div><h3>${esc(label || '오늘의 지역 미션')}</h3><p>공부처럼 무겁지 않게, 이름에서 지역으로 이어지는 작은 행동을 스탬프로 모읍니다.</p></div><strong>${done}/${MISSION_ITEMS.length}</strong></div>
     <div class="mission-grid">${MISSION_ITEMS.map(([id,title,body])=>{
       const key = `${scope}:${id}`;
       return `<button type="button" class="mission-card ${state[key]?'done':''}" data-act="toggleMission" data-id="${esc(key)}">
@@ -377,16 +377,16 @@ function reportDemoPanel(){
     ['협찬 스팟 확인', sponsorVisible ? 1 : 0]
   ];
   return `<section class="report-panel">
-    <div class="sec-label">월간 리포트 데모</div>
-    <h3>민간 파일럿 지표</h3>
-    <p>지자체·상권 제안 전에, 이 브라우저의 테스트 행동만 분리해 보는 샘플입니다.</p>
+    <div class="sec-label">지자체 생활인구 리포트 데모</div>
+    <h3>지역 방문 이유를 데이터로 설명하는 샘플</h3>
+    <p>한국관광 데이터랩·생활인구 자료와 연결하기 전, 이 브라우저의 테스트 행동만 분리해 보는 민간 파일럿 지표입니다.</p>
     <div class="report-grid">${metrics.map(([k,v])=>`<div class="metric-card"><b>${v}</b><span>${k}</span></div>`).join('')}</div>
     <button type="button" class="report-copy" data-act="copyReport">리포트 문구 복사</button>
   </section>`;
 }
 function copyReport(){
   const checked = Object.values(missionState()).filter(Boolean).length;
-  copyText(`조상이 도왔다 월간 리포트 데모\n저장한 루트 ${savedRoutes().length}개\n미션 체크 ${checked}개\n알림 신청 ${leads().length}개\n협찬 스팟 확인 ${sponsorVisible ? 1 : 0}회\n이 수치는 현재 브라우저의 민간 파일럿 테스트 값이며, 공공 인증이나 수익 보장을 의미하지 않습니다.`, '리포트 문구를 복사했습니다');
+  copyText(`조상이 도왔다 지자체 생활인구 리포트 데모\n저장한 루트 ${savedRoutes().length}개\n뿌리여권 미션 체크 ${checked}개\n알림 신청 ${leads().length}개\n스토리 스팟 확인 ${sponsorVisible ? 1 : 0}회\n이 수치는 현재 브라우저의 민간 파일럿 테스트 값이며, 공공 인증이나 수익 보장을 의미하지 않습니다.`, '리포트 문구를 복사했습니다');
 }
 function feedbackCta(scope){
   const items = [
@@ -401,7 +401,7 @@ function feedbackCta(scope){
 }
 function homePathBar(){
   return `<div class="path-bar">
-    <span>이름 입력</span><i></i><span>문헌/연원 기록 분기</span><i></i><span>지도 확인</span>
+    <span>이름 입력</span><i></i><span>확인 방식 선택</span><i></i><span>15초 루트카드</span>
   </div>`;
 }
 function bonOptions(s){
@@ -410,8 +410,8 @@ function bonOptions(s){
 }
 function searchModeSwitch(){
   const items = [
-    ['genealogy','기록으로 찾기','성씨와 본관을 알고 있을 때'],
-    ['name','넓게 둘러보기','성씨만 알거나 아직 잘 모를 때']
+    ['genealogy','문헌 기록으로 보기','성씨와 본관을 알고 있을 때'],
+    ['name','성씨·연원 기록으로 보기','성씨만 알거나 아직 잘 모를 때']
   ];
   return `<div class="mode-switch" role="tablist" aria-label="검색 모드">${items.map(([id,label,meta])=>`
     <button type="button" class="${searchMode===id?'on':''}" role="tab" aria-selected="${searchMode===id?'true':'false'}" data-act="searchMode" data-mode="${id}">
@@ -475,6 +475,30 @@ function quickRouteCards(){
   </div>`;
 }
 
+function instantRouteResult(){
+  const clan = find('지','충주') || CLANS[0];
+  const track = findTrack('ji-name-record') || nameTracks()[0];
+  return `<section class="instant-route">
+    <div class="instant-head">
+      <div><span>15초 루트 결과 예시</span><b>이름 하나가 여행·공부·지역소비 카드가 됩니다</b></div>
+      <button type="button" data-act="goClan" data-surname="${clan.surname}" data-bon="${clan.bon}">실제 보기</button>
+    </div>
+    <div class="instant-card">
+      <div class="instant-seal" style="--c:${clan.accent}">${clan.bonHanja}</div>
+      <div class="instant-main">
+        <span>문헌 기록 루트</span>
+        <b>${clanName(clan)}</b>
+        <p>${clan.region} · ${clan.course?.day1?.slice(0,2).join(' · ') || '지역 유래'} · ${clan.food?.[0] || '지역 음식'}</p>
+      </div>
+    </div>
+    <div class="instant-strip">
+      <button type="button" data-act="goNameTrack" data-track="${track.id}">본관 모르면 성씨·연원 기록</button>
+      <button type="button" data-act="tab" data-tab="region">전국 루트 지도</button>
+      <button type="button" data-act="homeCat" data-cat="biz">지자체 리포트 데모</button>
+    </div>
+  </section>`;
+}
+
 function homeMapPreview(){
   return `<div class="home-map-preview" data-act="tab" data-tab="region">
     <div><span>전국 루트 지도</span><b>가문 연고지 · 성씨·연원 기록 · 관광 · 맛집</b></div>
@@ -483,7 +507,7 @@ function homeMapPreview(){
 }
 function homeCategoryTabs(){
   const items = [
-    ['start','추천','짧게 보기'],
+    ['start','루트카드','15초 결과'],
     ['name','이름기록','본관 모를 때'],
     ['fun','지역재미','맛집·관광'],
     ['biz','사업모델','지역 활성화']
@@ -593,7 +617,7 @@ function businessImpactSection(mode){
   return `<section class="business-panel ${compact?'compact':''}">
     <div class="sec-label">지역 활성화 모델</div>
     <h3>재미있는 루트가 지역 소비로 이어지는 구조</h3>
-    <p class="business-lead">사용자는 이름과 지역을 배우고, 지역은 방문 이유를 얻고, 소상공인은 스토리와 쿠폰·예약·광고 슬롯으로 고객을 만납니다.</p>
+    <p class="business-lead">사용자는 이름과 지역을 배우고, 지역은 방문 이유를 얻고, 소상공인은 스토리 스팟과 쿠폰·예약·협찬 슬롯으로 고객을 만납니다.</p>
     <div class="impact-grid">${cards}</div>
     <div class="revenue-stack" aria-label="수익 루트">
       <div><b>무료 이용자</b><span>검색·지도·퀴즈</span></div>
@@ -603,7 +627,7 @@ function businessImpactSection(mode){
       <div><b>사업 수익</b><span>B2B 리포트·광고·제휴</span></div>
     </div>
     <div class="sponsor-toggle">
-      <div><b>광고·협찬 스팟 보기</b><span>꺼도 학습 루트는 그대로 볼 수 있습니다.</span></div>
+      <div><b>스토리 스팟 보기</b><span>광고·협찬 라벨을 붙여도 학습 루트는 그대로 볼 수 있습니다.</span></div>
       <button type="button" class="${sponsorVisible?'on':''}" data-act="toggleSponsor">${sponsorVisible?'켜짐':'보기'}</button>
     </div>
     ${sponsorVisible?sponsorSpotCards():''}
@@ -614,8 +638,8 @@ function businessImpactSection(mode){
 function sponsorSpotCards(){
   const spots = [
     ['광고·협찬','전통시장 스토리 스팟','지역 루트 옆에 시장·골목 이야기를 붙입니다. 일반 추천과 분리 표시합니다.'],
-    ['제휴 테스트','한 그릇 기억 스팟','향토음식·노포·청년 가게를 지역 이야기 맥락으로 보여줍니다.'],
-    ['민간 파일럿','지역 관심 리포트','저장·퀴즈·지도 클릭 같은 관심 지표를 월간 제안 자료로 묶습니다.']
+    ['백년가게·노포','한 그릇 기억 스팟','향토음식·노포·청년 가게를 지역 이야기 맥락으로 보여줍니다.'],
+    ['지자체 데모','생활인구 관심 리포트','저장·퀴즈·지도 클릭 같은 관심 지표를 월간 제안 자료로 묶습니다.']
   ];
   return `<div class="sponsor-spots" aria-label="광고 협찬 스팟">
     ${spots.map(s=>`<div class="sponsor-card"><span>${s[0]}</span><b>${s[1]}</b><p>${s[2]}</p></div>`).join('')}
@@ -632,6 +656,7 @@ function screenHome(){
       ${homePathBar()}
     </section>
     ${searchCard('primary')}
+    ${instantRouteResult()}
     ${homeCategoryTabs()}
     ${homeCategoryPanel()}
     ${trustRail()}
@@ -1433,5 +1458,5 @@ document.addEventListener('click', e=>{
 /* ---- 부팅 ---- */
 render();
 if('serviceWorker' in navigator){
-  navigator.serviceWorker.register('sw.js?v=33').then(reg => reg.update()).catch(()=>{});
+  navigator.serviceWorker.register('sw.js?v=34').then(reg => reg.update()).catch(()=>{});
 }
