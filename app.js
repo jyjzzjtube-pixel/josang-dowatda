@@ -34,7 +34,7 @@ const HUN = {
   '江':'강 강','陵':'큰언덕 릉','星':'별 성','廣':'넓을 광','延':'늘일 연','潘':'성씨 반','南':'남녘 남',
   '順':'순할 순','天':'하늘 천','萊':'명아주 래','日':'날 일','晉':'나아갈 진','漢':'한수 한','咸':'다 함',
   '羅':'벌일 라','淸':'맑을 청','氏':'성씨 씨','花':'꽃 화','德':'큰 덕','水':'물 수','張':'베풀 장',
-  '偰':'성씨 설','遜':'겸손할 손','龍':'용 룡','祥':'상서로울 상'
+  '偰':'성씨 설','遜':'겸손할 손','龍':'용 룡','祥':'상서로울 상','池':'못 지','忠':'충성 충','鏡':'거울 경'
 };
 function hunOf(ch){ return HUN[ch] || '뜻풀이 준비 중'; }
 
@@ -45,10 +45,12 @@ function loadSessionJSON(k){ try{ return JSON.parse(sessionStorage.getItem(k)); 
 let myClan = loadJSON('josang_myClan');
 let authUser = loadSessionJSON('josang_authUser');
 let searchMode = 'genealogy';
+let homeCategory = 'start';
 let sponsorVisible = loadJSON('josang_sponsor_visible') === true;
 const PUBLIC_URL = 'https://korean-roots-journey.vercel.app/';
 const curRoute = () => stack[stack.length-1];
 const find = (s,b) => CLANS.find(c=>c.surname===s && c.bon===b);
+function clanName(c){ return `${c.bon} ${c.surname}씨`; }
 const bonsOf = s => CLANS.filter(c=>c.surname===s).sort((a,b)=>a.bon.localeCompare(b.bon,'ko'));
 function popNum(c){ const m=(c.population||'').match(/([\d,]+)\s*만/); return m?parseInt(m[1].replace(/,/g,'')):0; }
 function go(screen, params){ stack.push({screen, params:params||{}}); render(); }
@@ -140,7 +142,19 @@ function displayQuery(v){ return esc(String(v||'').replace(/[<>]/g,'').trim()); 
 function nameTracks(){ return typeof NAME_TRACKS==='undefined' ? [] : NAME_TRACKS; }
 function findTrack(q){
   const key = norm(q);
-  return nameTracks().find(t => t.id===q || key.includes(norm(t.title)) || key.includes(norm(t.surname+t.bon)) || key.includes(norm(t.bon)) || key===norm(t.surname));
+  const bare = key.replace(/씨$/,'').replace(/氏$/,'');
+  return nameTracks().find(t => {
+    const surname = norm(t.surname);
+    const title = norm(t.title);
+    return t.id===q
+      || key.includes(title)
+      || (key.length >= 2 && title.includes(key))
+      || key.includes(norm(t.surname+t.bon))
+      || key.includes(norm(t.bon))
+      || key===surname
+      || key===norm(`${t.surname}씨`)
+      || bare===surname;
+  });
 }
 function storyBadge(t){ return srcBadge(t?.isGenealogy ? 'primary' : 'story', t?.isGenealogy ? '역사 문헌 기록' : '성씨·연원 기록'); }
 function trackKind(t){ return t?.isGenealogy ? '역사 문헌 기록 트랙' : '성씨·연원 기록 트랙'; }
@@ -239,7 +253,7 @@ function renderAppbar(t){
   if(t.screen==='clan'){
     const c = find(t.params.surname, t.params.bon);
     ab.innerHTML = `<div class="back" role="button" tabindex="0" aria-label="뒤로" data-act="back">‹</div>
-      <div class="title" style="font-size:18px">${c.surname} ${c.bon}씨</div><div class="spacer"></div>${authPill()}`;
+      <div class="title" style="font-size:18px">${clanName(c)}</div><div class="spacer"></div>${authPill()}`;
   } else if(t.screen==='nameTrack'){
     ab.innerHTML = `<div class="back" role="button" tabindex="0" aria-label="뒤로" data-act="back">‹</div>
       <div class="title" style="font-size:18px">이름 길</div><div class="spacer"></div>${authPill()}`;
@@ -304,7 +318,7 @@ function publicNotice(){
 }
 function routeSavePanel(type,item){
   const id = item.id || `${item.surname || ''}-${item.bon || ''}` || item.title;
-  const label = item.title || `${item.surname} ${item.bon}씨`;
+  const label = item.title || clanName(item);
   const meta = item.region || trackGroup(item) || '루트 기록';
   const saved = routeSaved(type,id);
   return `<div class="route-save-panel">
@@ -453,7 +467,7 @@ function quickRouteCards(){
   const a = CLANS[0], b = nameTracks()[0];
   return `<div class="quick-grid">
     <div class="quick-card" data-act="goClan" data-surname="${a.surname}" data-bon="${a.bon}">
-      <span>본관 기록</span><b>${a.surname} ${a.bon}씨</b><em>${a.region} · 지도 보기</em>
+      <span>본관 기록</span><b>${clanName(a)}</b><em>${a.region} · 지도 보기</em>
     </div>
     <div class="quick-card alt" data-act="goNameTrack" data-track="${b.id}">
       <span>성씨·연원 기록</span><b>${b.title}</b><em>${b.region} · 별도 길</em>
@@ -466,6 +480,52 @@ function homeMapPreview(){
     <div><span>전국 루트 지도</span><b>가문 연고지 · 성씨·연원 기록 · 관광 · 맛집</b></div>
     <button>지도 보기</button>
   </div>`;
+}
+function homeCategoryTabs(){
+  const items = [
+    ['start','추천','짧게 보기'],
+    ['name','이름기록','본관 모를 때'],
+    ['fun','지역재미','맛집·관광'],
+    ['biz','사업모델','지역 활성화']
+  ];
+  return `<div class="home-category-tabs" role="tablist" aria-label="홈 카테고리">
+    ${items.map(([id,label,meta])=>`<button type="button" class="${homeCategory===id?'on':''}" role="tab" aria-selected="${homeCategory===id?'true':'false'}" data-act="homeCat" data-cat="${id}">
+      <b>${label}</b><span>${meta}</span>
+    </button>`).join('')}
+  </div>`;
+}
+function compactNameGuide(){
+  const tracks = ['ji-name-record','bon-unknown','rare-name-record','multicultural-name-record'].map(findTrack).filter(Boolean);
+  return `<section class="compact-panel">
+    <div class="sec-label">본관을 몰라도 시작</div>
+    <h3>지씨 이름 기록도, 성씨·연원 기록으로 먼저 보기</h3>
+    <p>문헌 기록만이 뿌리의 전부는 아닙니다. 본관으로 바로 잡히지 않는 이름도 낮은 단계가 아닙니다. 한자, 생활권, 가족 기억, 공개 자료를 나눠 보며 특정 가계로 단정하지 않습니다.</p>
+    <div class="track-list">${tracks.map(trackRow).join('')}</div>
+    <button class="btn btn-line" data-act="goNameTrack" data-query="">성씨·연원 기록 모두 보기</button>
+  </section>`;
+}
+function regionalFunPanel(){
+  return `<section class="fun-panel">
+    <div class="sec-label">지역 재미</div>
+    <h3>맛집·관광·지역 유래를 한 번에</h3>
+    <p>이름에서 시작해 지역의 이야기, 하루 코스, 한 그릇 기억으로 이어집니다. 광고·협찬은 따로 표시합니다.</p>
+    <div class="fun-grid">
+      <div class="fun-card" data-act="goClan" data-surname="지" data-bon="충주"><span>충주 지씨 루트</span><b>중앙탑 · 탄금대 · 남한강</b><em>올뱅이국 · 꿩요리 · 사과</em></div>
+      <div class="fun-card red" data-act="goClan" data-surname="이" data-bon="전주"><span>전주 루트</span><b>경기전 · 한옥마을</b><em>비빔밥 · 콩나물국밥</em></div>
+      <div class="fun-card green" data-act="goClan" data-surname="권" data-bon="안동"><span>안동 루트</span><b>태사묘 · 월영교</b><em>찜닭 · 헛제사밥</em></div>
+    </div>
+    ${missionPanel('home-fun','오늘 하나만 해보는 지역 미션')}
+  </section>`;
+}
+function homeCategoryPanel(){
+  if(homeCategory === 'name') return compactNameGuide();
+  if(homeCategory === 'fun') return `${regionalFunPanel()}${homeMapPreview()}`;
+  if(homeCategory === 'biz') return businessImpactSection('compact');
+  return `<section class="home-quick-panel">
+    ${homeMapPreview()}
+    ${quickRouteCards()}
+    <button class="btn btn-line" data-act="homeCat" data-cat="name">본관을 모르는 이름도 보기</button>
+  </section>`;
 }
 
 function todayRegionShot(){
@@ -564,8 +624,6 @@ function sponsorSpotCards(){
 
 /* ---- 홈 ---- */
 function screenHome(){
-  const feat = CLANS.slice(0,3).map(clanRow).join('');
-  const chips = CLANS.map(c=>`<span class="chip" data-act="goClan" data-surname="${c.surname}" data-bon="${c.bon}">${c.surname} ${c.bon}씨</span>`).join('');
   return `<div class="screen">
     <section class="hero command-hero">
       <div class="hero-badge">무료로 내 루트 보기</div>
@@ -574,28 +632,10 @@ function screenHome(){
       ${homePathBar()}
     </section>
     ${searchCard('primary')}
+    ${homeCategoryTabs()}
+    ${homeCategoryPanel()}
     ${trustRail()}
-    ${authStrip('quiet')}
-    ${homeMapPreview()}
-    ${todayRegionShot()}
-    ${missionPanel('home','오늘 바로 해볼 지역 미션')}
-    <div class="home-branch">
-      <b>문헌 기록만이 뿌리의 전부는 아닙니다.</b>
-      <span>본관 문헌으로 바로 확정되지 않는 이름도 조상과 지역의 이야기를 가질 수 있습니다. 앱은 두 길을 동등하게, 그러나 헷갈리지 않게 나눠 보여줍니다.</span>
-    </div>
-    ${businessImpactSection('compact')}
-    ${quickRouteCards()}
     ${publicNotice()}
-    <div class="quiz-card" data-act="quiz">
-      <div class="quiz-ic">퀴</div>
-      <div><div class="quiz-t">뿌리 퀴즈 한 판</div><div class="quiz-s">내 성씨·시조 상식, 몇 점 나올까?</div></div>
-      <div class="quiz-go">시작 ›</div>
-    </div>
-    <div class="row-head">이런 가문도 있어요</div>
-    ${feat}
-    ${nameTrackIntro()}
-    <div class="row-head">바로 찾아보기</div>
-    <div class="chips">${chips}</div>
     <div class="neutral-note">성씨와 본관은 나를 설명하는 여러 결 중 하나일 뿐입니다. 모든 성씨와 뿌리는 동등하며, 가문에 높고 낮음은 없습니다.</div>
   </div>`;
 }
@@ -645,7 +685,7 @@ function screenSearchResult(p){
 function clanRow(c){
   return `<div class="clan-row" data-act="goClan" data-surname="${c.surname}" data-bon="${c.bon}">
     <div class="emblem" style="--c:${c.accent}">${c.bonHanja}</div>
-    <div class="info"><div class="nm">${c.surname} ${c.bon}씨${c.badge?` <span class="context-chip">${c.badge}</span>`:''}${c.verifyLevel==='draft'?` <span class="draft-tag">확인 필요</span>`:''}</div><div class="tg">${c.tagline}</div></div>
+    <div class="info"><div class="nm">${clanName(c)}${c.badge?` <span class="context-chip">${c.badge}</span>`:''}${c.verifyLevel==='draft'?` <span class="draft-tag">확인 필요</span>`:''}</div><div class="tg">${c.tagline}</div></div>
     <div class="arr" aria-hidden="true">›</div></div>`;
 }
 
@@ -675,7 +715,7 @@ function screenMine(){
     <div class="sec-label">내 가문</div>
     <div class="detail-hero" style="--c:${c.accent}">
       <div class="emblem" style="--c:${c.accent}">${c.bonHanja}</div>
-      <div class="nm">${c.surname} ${c.bon}씨</div>
+      <div class="nm">${clanName(c)}</div>
       <div class="tg">“${c.tagline}”</div>
       <div class="meta">시조 ${c.founder} · 연고지 ${c.region}</div>
     </div>
@@ -792,6 +832,7 @@ function screenNameTrack(p){
       <div>${storyBadge(track)} ${factBadge(track.verifyLevel)}</div>
     </section>
     ${routeSavePanel('track', track)}
+    ${nameTrackFunPreview(track)}
     ${missionPanel(`track-${track.id}`,'이 이름 길에서 해볼 미션')}
     ${feedbackCta('nameTrack')}
     <div id="nameMap"></div>
@@ -817,7 +858,7 @@ function screenClan(p){
   return `<div class="screen">
     <div class="detail-hero" style="--c:${c.accent}">
       <div class="emblem" style="--c:${c.accent}">${c.bonHanja}</div>
-      <div class="nm">${c.surname} ${c.bon}씨</div>
+      <div class="nm">${clanName(c)}</div>
       <div class="hanja" aria-label="${c.bon} ${c.surname}씨">${c.bonHanja} ${c.surnameHanja}氏</div>
       <div class="tg">“${c.tagline}”</div>
       ${c.badge?`<div class="hero-context">${c.badge} · ${c.population}</div>`:''}
@@ -826,6 +867,7 @@ function screenClan(p){
       <button class="hanja-btn" data-act="hanja" data-surname="${c.surname}" data-bon="${c.bon}">${IC.pen} 한자 따라쓰기</button>
     </div>
     ${routeSavePanel('clan', c)}
+    ${clanFunPreview(c)}
     ${missionPanel(`clan-${c.surname}-${c.bon}`,'이 지역에서 해볼 미션')}
     ${also}
     <div class="seg" role="tablist">${seg}</div>
@@ -862,6 +904,38 @@ function neighborhoodCards(c){
       <div class="local-card partner"><span>지역 협력</span><b>${market}</b><p>지역 파트너가 있을 때만 광고·협찬 라벨로 조용히 표시합니다.</p></div>
     </div>
   </div>`;
+}
+function clanFunPreview(c){
+  const tour = (c.course?.day1 || []).slice(0,3);
+  const foods = (c.food || []).slice(0,3);
+  const regionNote = c.region || c.bon;
+  return `<section class="detail-fun-preview">
+    <div class="detail-fun-head">
+      <div><span>지역 재미 미리보기</span><b>관광지 · 맛집 · 지역 유래</b></div>
+      <button type="button" data-act="sub" data-sub="여행">지도·1박2일</button>
+    </div>
+    <div class="detail-fun-grid">
+      <div><span>관광지</span><b>${tour.join(' · ')}</b></div>
+      <div><span>맛집</span><b>${foods.join(' · ')}</b></div>
+      <div><span>지역 유래</span><b>${regionNote}에서 이름의 흔적을 공개 기록과 함께 봅니다.</b></div>
+    </div>
+  </section>`;
+}
+function nameTrackFunPreview(track){
+  const isJi = track.id === 'ji-name-record';
+  const tour = isJi ? '충주 중앙탑 · 탄금대 · 남한강' : `${track.region} 생활권 · 가족 기억 · 공개 자료`;
+  const food = isJi ? '올뱅이국 · 꿩요리 · 충주 사과' : '지역 시장 · 오래 간 가게 · 가족 밥상';
+  return `<section class="detail-fun-preview story-mode">
+    <div class="detail-fun-head">
+      <div><span>성씨·연원 기록</span><b>족보 기록과 별도로 보는 지역 이야기</b></div>
+      <button type="button" data-act="tab" data-tab="region">지도 보기</button>
+    </div>
+    <div class="detail-fun-grid">
+      <div><span>지역 스토리</span><b>${tour}</b></div>
+      <div><span>먹거리</span><b>${food}</b></div>
+      <div><span>확인 방식</span><b>자동 귀속하지 않고 한자·생활권·가족 문서를 나눠 확인합니다.</b></div>
+    </div>
+  </section>`;
 }
 function subView(c, sub){
   const draft = c.verifyLevel==='draft';
@@ -949,7 +1023,17 @@ const MAP_POINT_CATALOG = {
   "병산서원":{lat:36.5450,lng:128.5437,type:"tour",desc:"안동 서원",verifyLevel:"verified"},
   "월영교":{lat:36.5765,lng:128.7600,type:"tour",desc:"안동 호반 산책 명소",verifyLevel:"verified"},
   "도산서원":{lat:36.7275,lng:128.8431,type:"tour",desc:"퇴계 이황 관련 서원",verifyLevel:"verified"},
-  "안동찜닭":{lat:36.5658,lng:128.7301,type:"food",desc:"안동 구시장 찜닭골목 권역",verifyLevel:"partial"}
+  "안동찜닭":{lat:36.5658,lng:128.7301,type:"food",desc:"안동 구시장 찜닭골목 권역",verifyLevel:"partial"},
+  "중앙탑사적공원":{lat:37.0169,lng:127.8625,type:"tour",desc:"충주 탑평리 칠층석탑과 남한강 경관",verifyLevel:"verified"},
+  "충주박물관":{lat:37.0174,lng:127.8620,type:"tour",desc:"충주 역사 자료를 볼 수 있는 박물관",verifyLevel:"verified"},
+  "탄금대":{lat:36.9774,lng:127.9186,type:"tour",desc:"우륵과 가야금 전승이 함께 전하는 충주 명소",verifyLevel:"verified"},
+  "수안보 온천":{lat:36.8466,lng:127.9954,type:"tour",desc:"충주 수안보 온천 관광권역",verifyLevel:"partial"},
+  "충주 활옥동굴":{lat:36.9586,lng:127.9698,type:"tour",desc:"충주 동굴형 관광지",verifyLevel:"partial"},
+  "충주 자유시장":{lat:36.9708,lng:127.9329,type:"tour",desc:"충주 도심 전통시장권",verifyLevel:"partial"},
+  "충주 올뱅이국":{lat:37.0169,lng:127.8625,type:"food",desc:"남한강 권역에서 함께 소개되는 충주 음식",verifyLevel:"partial"},
+  "충주 꿩요리":{lat:36.8466,lng:127.9954,type:"food",desc:"수안보 권역에서 알려진 충주 음식",verifyLevel:"partial"},
+  "막국수":{lat:36.991,lng:127.9259,type:"food",desc:"충주 여행 중 곁들일 수 있는 면 요리",verifyLevel:"partial"},
+  "충주 사과":{lat:36.991,lng:127.9259,type:"food",desc:"충주 지역 특산물",verifyLevel:"partial"}
 };
 function mapPopup(p){
   return `<b>${p.name}</b><br>${p.desc||''}<br><span class="popup-level ${p.verifyLevel}">${levelLabel(p.verifyLevel)}</span><br><small>가계 확정 아님 · 지역 중심 표시</small>`;
@@ -971,7 +1055,7 @@ function catalogPoint(name, fallbackType){
   return {...p, name, type:p.type||fallbackType};
 }
 function clanMapPoints(c){
-  const family = [{name:`${c.surname} ${c.bon}씨 연고지`,lat:c.lat,lng:c.lng,type:'family',desc:c.region,verifyLevel:c.verifyLevel||'partial'}];
+  const family = [{name:`${clanName(c)} 연고지`,lat:c.lat,lng:c.lng,type:'family',desc:c.region,verifyLevel:c.verifyLevel||'partial'}];
   const tourNames = [...(c.course?.day1||[]), ...(c.course?.day2||[])];
   const tour = tourNames.map(n=>catalogPoint(n,'tour')).filter(Boolean);
   const food = [...(c.food||[]), ...(c.specialty||[])].map(n=>catalogPoint(n,'food')).filter(Boolean);
@@ -1040,7 +1124,7 @@ function buildNameTrackMap(track){
 }
 function worldMapPoints(){
   const family = CLANS.filter(c=>Number.isFinite(c.lat)&&Number.isFinite(c.lng)).map(c=>({
-    name:`${c.surname} ${c.bon}씨`, lat:c.lat, lng:c.lng, type:'family', desc:`가문/본관 기록 · ${c.region}`, verifyLevel:c.verifyLevel||'partial'
+    name:clanName(c), lat:c.lat, lng:c.lng, type:'family', desc:`가문/본관 기록 · ${c.region}`, verifyLevel:c.verifyLevel||'partial'
   }));
   const seen={};
   const allTours = [], allFood = [];
@@ -1083,7 +1167,7 @@ function openHanja(s,b){
   if(!m){ m=document.createElement('div'); m.id='hanjaModal'; m.className='modal'; $('app').appendChild(m); }
   m.innerHTML=`<div class="modal-card">
     <div class="modal-head"><div><div class="modal-title">한자 따라쓰기</div>
-      <div class="modal-sub">${c.surname} ${c.bon}씨 · ${c.bonHanja} ${c.surnameHanja}氏</div></div>
+      <div class="modal-sub">${clanName(c)} · ${c.bonHanja} ${c.surnameHanja}氏</div></div>
       <div class="modal-close" data-act="hanja-close" role="button" aria-label="닫기">×</div></div>
     <div class="hz-tabs" id="hzTabs"></div>
     <div class="hz-mean" id="hzMean"></div>
@@ -1153,7 +1237,7 @@ function closeQuiz(){ const m=$('quizModal'); if(m){ m.classList.remove('on'); s
 
 /* ---- 동작 ---- */
 function registerClan(s,b){ myClan={surname:s,bon:b}; localStorage.setItem('josang_myClan',JSON.stringify(myClan));
-  toast(`${s} ${b}씨 — 내 가문으로 등록되었습니다`); render(); }
+  toast(`${b} ${s}씨 — 내 가문으로 등록되었습니다`); render(); }
 function unregister(){ myClan=null; localStorage.removeItem('josang_myClan'); toast('등록이 해제되었습니다'); render(); }
 let toastT;
 function toast(msg){ let el=$('toast'); if(!el){el=document.createElement('div');el.id='toast';$('app').appendChild(el);}
@@ -1203,6 +1287,7 @@ document.addEventListener('click', e=>{
   else if(a==='goNameTrack') go('nameTrack',{track:el.dataset.track, query:el.dataset.query||''});
   else if(a==='goMine') tab('mine');
   else if(a==='sub'){ curRoute().params.sub = el.dataset.sub; render(); }
+  else if(a==='homeCat'){ homeCategory = el.dataset.cat || 'start'; render(); }
   else if(a==='searchMode'){ searchMode = el.dataset.mode || 'genealogy'; render(); }
   else if(a==='pickTrack'){ const sel=$('selTrack'); if(sel) sel.value=el.dataset.track; toast('이 출발점으로 안내합니다'); }
   else if(a==='search') doSearch();
@@ -1240,5 +1325,5 @@ document.addEventListener('click', e=>{
 /* ---- 부팅 ---- */
 render();
 if('serviceWorker' in navigator){
-  navigator.serviceWorker.register('sw.js?v=31').then(reg => reg.update()).catch(()=>{});
+  navigator.serviceWorker.register('sw.js?v=32').then(reg => reg.update()).catch(()=>{});
 }
