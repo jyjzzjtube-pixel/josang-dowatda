@@ -111,6 +111,114 @@ function copyRouteCard(type,id,label,meta){
   const kind = type === 'clan' ? '본관 기록' : '성씨·연원 기록';
   copyText(`조상이 도왔다 루트 카드\n${label}\n${kind} · ${meta}\n개인 가계 확정이 아닌 지역·기록 탐색 카드입니다.\n${PUBLIC_URL}`, '루트 카드를 복사했습니다');
 }
+const FAMILY_QUESTIONS = [
+  '우리 가족이 오래 살았던 동네는 어디였나요?',
+  '어릴 때 자주 갔던 시장이나 골목은 어디였나요?',
+  '가족끼리 자주 먹던 지역 음식은 무엇이었나요?',
+  '성씨나 이름 한자에 대해 들은 이야기가 있나요?',
+  '명절마다 떠오르는 장소나 집안 이야기가 있나요?',
+  '내가 모르는 가족 사진 속 장소가 있나요?',
+  '우리 가족이 다른 지역으로 옮겨 온 기억이 있나요?'
+];
+function familyAnswers(){ return loadJSON('josang_familyAnswers') || []; }
+function familyAnswerKey(){ return `q-${dayKey(0)}`; }
+function familyQuestionFor(label){
+  const idx = hashText(`${label || 'root'}|${dayKey(0)}`) % FAMILY_QUESTIONS.length;
+  return FAMILY_QUESTIONS[idx];
+}
+function copyFamilyQuestion(label, question){
+  copyText(`조상이 도왔다 가족 질문\n${label || '내 이름 루트'}\n\n${question}\n\n답은 짧게 기억나는 만큼만 알려주세요. 가계 증명이나 혈통 확인이 아니라 가족 기억을 모으는 질문입니다.\n${PUBLIC_URL}`, '가족에게 보낼 질문을 복사했습니다');
+}
+function saveFamilyAnswer(label, question){
+  const input = $('familyAnswerInput');
+  const value = (input?.value || '').trim();
+  if(!value){ toast('가족 답변을 한 줄 이상 입력해주세요'); return; }
+  const a = familyAnswers();
+  a.unshift({label:label || '내 이름 루트', question, answer:value, ts:Date.now()});
+  saveLocalJSON('josang_familyAnswers', a.slice(0,30));
+  toast('가족 답변을 뿌리여권에 저장했습니다');
+  render();
+}
+function copyFamilyHistoryCard(){
+  const latest = familyAnswers()[0];
+  const title = latest?.label || (myClan ? `${myClan.bon} ${myClan.surname}씨` : '내 이름 루트');
+  const answer = latest?.answer || '아직 가족 답변을 기다리는 중입니다.';
+  copyText(`우리 집 한 줄 역사 카드\n${title}\n"${answer}"\n\n전해지는 가족 이야기로 저장한 기록입니다. 공식 증명 자료가 아닙니다.\n${PUBLIC_URL}`, '우리 집 한 줄 역사 카드를 복사했습니다');
+}
+function familyQuestionPanel(label){
+  const question = familyQuestionFor(label);
+  return `<section class="family-question-panel">
+    <div class="family-question-head">
+      <div><span>오늘의 가족 질문</span><b>${esc(question)}</b><p>부모님·친척에게 물어볼 한 문장입니다. 답변은 이 기기 뿌리여권에만 저장됩니다.</p></div>
+      <button type="button" data-act="copyFamilyQuestion" data-label="${esc(label || '내 이름 루트')}" data-question="${esc(question)}">가족에게 물어보기</button>
+    </div>
+    <label class="family-answer-box">
+      <span>받은 답변 저장</span>
+      <textarea id="familyAnswerInput" rows="3" placeholder="예: 할머니가 충주 시장 근처에서 오래 사셨대요."></textarea>
+    </label>
+    <button type="button" class="family-save-btn" data-act="saveFamilyAnswer" data-label="${esc(label || '내 이름 루트')}" data-question="${esc(question)}">답변을 뿌리여권에 저장</button>
+  </section>`;
+}
+function familyAnswersSection(){
+  const items = familyAnswers();
+  const rows = items.slice(0,5).map(item=>`<article>
+    <span>${esc(item.label)}</span>
+    <b>${esc(item.question)}</b>
+    <p>${esc(item.answer)}</p>
+  </article>`).join('');
+  return `<section class="family-answers">
+    <div class="saved-routes-head"><div><span>가족 릴레이</span><b>가족 답변함</b></div><small>${items.length}개</small></div>
+    ${items.length ? rows : `<div class="saved-empty"><b>아직 가족 답변이 없습니다</b><span>오늘의 가족 질문을 복사해서 보내고, 받은 답을 붙여 넣으면 여기에 쌓입니다.</span></div>`}
+    <button type="button" class="report-copy" data-act="copyFamilyHistory">우리 집 한 줄 역사 카드 복사</button>
+  </section>`;
+}
+function placeStamps(){ return loadJSON('josang_placeStamps') || []; }
+function stampPlace(name,type){
+  const a = placeStamps();
+  const key = `${type || 'place'}:${name || 'spot'}`;
+  if(!a.some(x=>x.key===key)){
+    a.unshift({key,name:name || '지역 스팟',type:type || 'place',ts:Date.now()});
+    saveLocalJSON('josang_placeStamps', a.slice(0,50));
+  }
+  toast('방문 스탬프를 뿌리여권에 저장했습니다');
+  render();
+}
+function rootPassportPanel(label){
+  const checked = Object.values(missionState()).filter(Boolean).length;
+  const stats = [
+    ['저장 루트', savedRoutes().length],
+    ['가족 답변', familyAnswers().length],
+    ['방문 스탬프', placeStamps().length],
+    ['미션', checked]
+  ];
+  return `<section class="root-passport-panel">
+    <div class="sec-label">뿌리여권</div>
+    <h3>${esc(label || '내 이름 루트')} 기록장</h3>
+    <p>성씨·연원 기록, 가족 질문, 방문 스탬프, 퀴즈와 따라쓰기를 한 곳에 모읍니다. 무료는 이 기기 보관함으로 시작합니다.</p>
+    <div class="passport-stat-grid">${stats.map(([k,v])=>`<div><b>${v}</b><span>${k}</span></div>`).join('')}</div>
+    <div class="passport-actions">
+      <button type="button" data-act="copyFamilyHistory">한 줄 역사 카드</button>
+      <button type="button" data-act="tab" data-tab="region">스탬프 지도</button>
+    </div>
+  </section>`;
+}
+function copyBusinessPitch(){
+  copyText(`조상이 도왔다 소상공인 스토리 패키지 샘플\n- 지역 루트 지도 핀\n- 스토리 카드와 쿠폰 QR\n- 가족 질문/뿌리여권 미션 연결\n- 광고·협찬 라벨 분리\n\n성과를 약속하지 않는 민간 파일럿 제안입니다.\n${PUBLIC_URL}`, '소상공인 패키지 문구를 복사했습니다');
+}
+function localCommercePackagePanel(){
+  const packs = [
+    ['소상공인','스토리 카드 5장','가게 이야기를 지역 루트 옆에 붙이고 쿠폰 QR은 별도 라벨로 표시합니다.'],
+    ['종친회·문중','디지털 소개 페이지','본관 소개, 행사 지도, 퀴즈, 뿌리여권 PDF 샘플을 묶습니다.'],
+    ['지자체·문화원','생활인구 리포트 샘플','관광·체류 데이터와 앱 저장/지도 클릭 지표를 분리해 보여줍니다.']
+  ];
+  return `<section class="commerce-package-panel">
+    <div class="sec-label">소상공인 스토리 패키지 샘플</div>
+    <h3>재미가 지역 매출 제안서가 되는 구조</h3>
+    <p>가게를 일반 추천처럼 숨기지 않고, 광고·협찬 라벨을 붙인 스토리 스팟으로 분리합니다.</p>
+    <div class="commerce-pack-grid">${packs.map(p=>`<article><span>${p[0]}</span><b>${p[1]}</b><p>${p[2]}</p></article>`).join('')}</div>
+    <button type="button" class="report-copy" data-act="copyBusinessPitch">패키지 문구 복사</button>
+  </section>`;
+}
 function openSavedRoute(key){
   const item = savedRoutes().find(x=>x.key===key);
   if(!item){ toast('저장한 루트를 찾지 못했습니다'); return; }
@@ -633,7 +741,7 @@ function regionalFunPanel(){
 function homeCategoryPanel(){
   if(homeCategory === 'name') return compactNameGuide();
   if(homeCategory === 'fun') return `${regionalFunPanel()}${homeMapPreview()}`;
-  if(homeCategory === 'biz') return businessImpactSection('compact');
+  if(homeCategory === 'biz') return `${localCommercePackagePanel()}${businessImpactSection('compact')}`;
   return `<section class="home-quick-panel">
     ${homeMapPreview()}
     ${quickRouteCards()}
@@ -745,7 +853,9 @@ function screenHome(){
       ${homePathBar()}
     </section>
     ${searchCard('primary')}
+    ${familyQuestionPanel('내 이름 루트')}
     ${instantRouteResult()}
+    ${rootPassportPanel('내 이름 루트')}
     ${homeCategoryTabs()}
     ${homeCategoryPanel()}
     ${trustRail()}
@@ -818,6 +928,7 @@ function screenRouteResult(p){
         <span>1 확인 방식</span><i></i><span>2 지역 지도</span><i></i><span>3 뿌리여권</span><i></i><span>4 스토리 스팟</span>
       </div>
     </section>
+    ${familyQuestionPanel(routeTitle)}
     ${routeStoryBoard(clan, track)}
     <section class="route-result-grid">
       ${routeResultHeroCard('지역 루트', r.region, `${r.tour}에서 시작해 ${r.food}까지 이어지는 하루 코스입니다.`)}
@@ -838,8 +949,10 @@ function screenRouteResult(p){
       </div>
     </section>
     ${routeQuizPanel(clan, track)}
+    ${rootPassportPanel(routeTitle)}
     ${missionPanel(`route-${norm(routeTitle)}`,'이 루트로 찍는 뿌리여권')}
     ${routeBusinessPackage()}
+    ${localCommercePackagePanel()}
     ${businessImpactSection('compact')}
     ${feedbackCta('routeResult')}
     ${publicNotice()}
@@ -884,6 +997,9 @@ function screenMine(){
   if(!myClan){
     return `<div class="screen">
     ${authStrip()}
+    ${rootPassportPanel('내 이름 루트')}
+    ${familyQuestionPanel('내 이름 루트')}
+    ${familyAnswersSection()}
     ${savedRoutesSection()}
     <div class="empty">
       <div class="big" aria-hidden="true">${IC.tree}</div><h3>아직 등록된 가문이 없어요</h3>
@@ -900,6 +1016,9 @@ function screenMine(){
       <div class="tg">“${c.tagline}”</div>
       <div class="meta">시조 ${c.founder} · 연고지 ${c.region}</div>
     </div>
+    ${rootPassportPanel(clanName(c))}
+    ${familyQuestionPanel(clanName(c))}
+    ${familyAnswersSection()}
     ${savedRoutesSection()}
     <div class="clan-row" data-act="goClan" data-surname="${c.surname}" data-bon="${c.bon}">
       <div class="emblem" style="--c:${c.accent}">${c.bonHanja}</div>
@@ -934,9 +1053,11 @@ function screenRegion(){
       <p>가문, 관광, 진짜맛집, 연원기록을 한 지도에서 켜고 끄며 봅니다. 마커를 누르면 상세내용이 바로 열립니다.</p>
     </section>
     ${worldMapSection()}
+    ${rootPassportPanel('지역 스탬프')}
     ${regionCurationSection()}
     ${missionPanel('region','지도에서 고른 지역 미션')}
     ${businessImpactSection()}
+    ${localCommercePackagePanel()}
     <div class="row-head compact">다음 연결 기능</div>
     ${items}
     <div class="card" style="margin-top:14px;text-align:center">
@@ -1274,10 +1395,10 @@ function renderMapPointList(groups){
 }
 function mapDetailAction(p){
   const actions = [];
+  actions.push(`<button type="button" data-act="stampPlace" data-name="${esc(p.name || '지역 스팟')}" data-type="${esc(p.type || 'place')}">방문 스탬프</button>`);
   if(p.sourceUrl) actions.push(`<a href="${esc(p.sourceUrl)}" target="_blank" rel="noopener">출처 열기</a>`);
   if(p.surname && p.bon) actions.push(`<button type="button" data-act="goClan" data-surname="${esc(p.surname)}" data-bon="${esc(p.bon)}">관련 가문 보기</button>`);
   if(p.trackId) actions.push(`<button type="button" data-act="goNameTrack" data-track="${esc(p.trackId)}">연원기록 보기</button>`);
-  if(!actions.length) actions.push(`<button type="button" data-act="notify" data-feature="${esc(pointTypeLabel(p.type))}상세">이 장소 저장 알림</button>`);
   return actions.join('');
 }
 function showMapDetail(p){
@@ -1296,6 +1417,7 @@ function showMapDetail(p){
       <span>출처: ${esc(source)}</span>
       <span>좌표: ${Number.isFinite(p.lat)?p.lat.toFixed(4):'-'}, ${Number.isFinite(p.lng)?p.lng.toFixed(4):'-'}</span>
     </div>
+    <div class="map-commerce-line"><span>방문 스탬프</span><span>쿠폰 준비중</span><span>광고·협찬 라벨 분리</span></div>
     <div class="map-detail-actions">${mapDetailAction(p)}</div>`;
   setTimeout(()=>card.scrollIntoView({block:'nearest',behavior:'smooth'}), 40);
 }
@@ -1744,9 +1866,14 @@ document.addEventListener('click', e=>{
   else if(a==='search') doSearch();
   else if(a==='toggleMapLayer') toggleMapLayer(el.dataset.layer);
   else if(a==='mapPointDetail'){ const point=MAP_POINT_STORE[el.dataset.point]; if(point) showMapDetail(point); }
+  else if(a==='stampPlace') stampPlace(el.dataset.name, el.dataset.type);
   else if(a==='toggleSponsor'){ sponsorVisible=!sponsorVisible; localStorage.setItem('josang_sponsor_visible', JSON.stringify(sponsorVisible)); render(); }
   else if(a==='saveRoute') saveRoute(el.dataset.type, el.dataset.id, el.dataset.label, el.dataset.meta);
   else if(a==='copyRoute') copyRouteCard(el.dataset.type, el.dataset.id, el.dataset.label, el.dataset.meta);
+  else if(a==='copyFamilyQuestion') copyFamilyQuestion(el.dataset.label, el.dataset.question);
+  else if(a==='saveFamilyAnswer') saveFamilyAnswer(el.dataset.label, el.dataset.question);
+  else if(a==='copyFamilyHistory') copyFamilyHistoryCard();
+  else if(a==='copyBusinessPitch') copyBusinessPitch();
   else if(a==='openSavedRoute') openSavedRoute(el.dataset.key);
   else if(a==='removeRoute') removeRoute(el.dataset.key);
   else if(a==='toggleMission') toggleMission(el.dataset.id);
@@ -1780,5 +1907,5 @@ document.addEventListener('click', e=>{
 /* ---- 부팅 ---- */
 render();
 if('serviceWorker' in navigator){
-  navigator.serviceWorker.register('sw.js?v=38').then(reg => reg.update()).catch(()=>{});
+  navigator.serviceWorker.register('sw.js?v=39').then(reg => reg.update()).catch(()=>{});
 }
