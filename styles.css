@@ -151,6 +151,13 @@ h2.scr-h{font-size:24px;font-weight:700;letter-spacing:0;color:var(--ink);line-h
 .result-hero p,.region-head p{font-size:13px;color:var(--sub);line-height:1.55;margin-top:8px}
 .zero-card b{display:block;font-size:16px;color:var(--ink);margin-bottom:7px}
 .zero-card span{display:block;font-size:13px;color:var(--sub);line-height:1.6;margin-bottom:14px}
+.route-choice{display:grid;grid-template-columns:1fr;gap:9px;margin:12px 0 14px}
+.route-card{display:grid;grid-template-columns:42px 1fr;gap:10px;align-items:start;border:1px solid var(--line);border-radius:14px;
+  padding:12px;background:var(--surface-2);cursor:pointer;transition:transform .12s,border-color .15s}
+.route-card:active{transform:scale(.99);border-color:var(--brand)}
+.route-card b{font-size:14px;line-height:1.25;color:var(--ink);margin:0}
+.route-card span{grid-column:2;font-size:12.3px;line-height:1.55;color:var(--sub);margin:0}
+.route-card em{grid-column:2;font-style:normal;font-size:11.5px;line-height:1.45;color:var(--brand-text);font-weight:600}
 
 /* 홈 루트 카드 */
 .quick-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:14px 0}
@@ -167,6 +174,73 @@ h2.scr-h{font-size:24px;font-weight:700;letter-spacing:0;color:var(--ink);line-h
 .home-map-preview span{display:block;font-size:11.5px;font-weight:700;color:#1D5EAD;margin-bottom:4px}
 .home-map-preview b{font-size:15px;font-weight:700;color:var(--ink);line-height:1.35}
 .home-map-preview button{border:0;border-radius:999px;background:var(--blue);color:#fff;padding:10px 12px;font-size:12px;font-weight:700;white-space:nowrap}
+.region-shot{display:grid;grid-template-columns:112px 1fr;gap:13px;align-items:stretch;background:#fff;border:1px solid var(--line);
+  border-radius:18px;padding:12px;margin:10px 0 14px;box-shadow:var(--sh-1);cursor:pointer}
+.shot-art{min-height:118px;border-radius:14px;background:linear-gradient(150deg,#1C1812 0%,#2A241B 58%,#A83E2C 130%);
+  display:flex;align-items:end;justify-content:center;overflow:hidden;position:relative}
+.shot-art::before{content:"";position:absolute;inset:0;background:radial-gradient(circle at 35% 20%,rgba(216,178,90,.32),transparent 45%)}
+.shot-art span{position:relative;font-family:var(--serif);font-size:25px;font-weight:700;color:var(--gold-bright);padding:0 0 18px}
+.shot-body{padding:3px 0;display:flex;flex-direction:column;justify-content:center}
+.shot-label{font-size:11px;font-weight:700;color:#1D5EAD;background:var(--blue-tint);border-radius:999px;padding:5px 9px;width:max-content;max-width:100%;margin-bottom:8px}
+.shot-body h3{font-size:18px;font-weight:700;line-height:1.3;color:var(--ink);letter-spacing:0}
+.shot-body p{font-size:12.5px;color:var(--sub);line-height:1.52;margin:6px 0 10px}
+.shot-body button{border:0;background:var(--ink);color:#fff;border-radius:999px;padding:8px 11px;font-size:12px;font-weight:700;width:max-content;max-width:100%}
+
+/* 지역 활성화·수익 루트 */
+.business-panel{position:relative;background:linear-gradient(180deg,#FFFFFF 0%,#F8FAF6 100%);border:1px solid var(--line);
+  border-radius:18px;padding:18px;margin:16px 0;box-shadow:var(--sh-1);overflow:hidden}
+.business-panel::after{content:"";position:absolute;right:-34px;top:-34px;width:112px;height:112px;border-radius:32px;
+  background:linear-gradient(135deg,rgba(47,128,237,.10),rgba(216,178,90,.16));transform:rotate(18deg)}
+.business-panel>*{position:relative;z-index:1}
+.business-panel h3{font-size:21px;font-weight:700;line-height:1.34;color:var(--ink);letter-spacing:0}
+.business-lead{font-size:13.5px;color:var(--sub);line-height:1.65;margin:8px 0 14px}
+.impact-grid{display:grid;grid-template-columns:1fr;gap:9px}
+.impact-card{border:1px solid var(--line);background:var(--surface);border-radius:14px;padding:13px 13px 12px;
+  cursor:pointer;transition:transform .12s,border-color .15s}
+.impact-card:active{transform:scale(.99);border-color:var(--brand)}
+.impact-top{display:flex;align-items:center;gap:9px;margin-bottom:7px}
+.impact-top span{flex:0 0 auto;font-size:10.5px;font-weight:700;color:#1D5EAD;background:var(--blue-tint);
+  border-radius:999px;padding:5px 8px}
+.impact-top b{font-size:15px;font-weight:700;color:var(--ink);line-height:1.28}
+.impact-card p{font-size:12.5px;color:var(--sub);line-height:1.58;margin-bottom:10px}
+.impact-meta{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.impact-meta em{font-style:normal;font-size:11px;color:var(--gold-text);background:var(--gold-tint);
+  border-radius:999px;padding:5px 8px;white-space:nowrap}
+.impact-meta strong{font-size:11.5px;color:var(--brand-text);font-weight:700;text-align:right}
+.revenue-stack{display:grid;grid-template-columns:1fr 14px 1fr 14px 1fr;align-items:stretch;gap:5px;margin:13px 0 10px}
+.revenue-stack div{background:var(--surface-2);border:1px solid var(--line);border-radius:12px;padding:10px 6px;text-align:center}
+.revenue-stack b{display:block;font-size:11.5px;font-weight:700;color:var(--ink);line-height:1.2}
+.revenue-stack span{display:block;font-size:10.2px;color:var(--sub);line-height:1.25;margin-top:4px}
+.revenue-stack i{height:1px;background:var(--line-strong);align-self:center}
+.risk-note{font-size:11.5px;color:var(--faint);line-height:1.55;background:var(--surface-2);border-radius:12px;padding:11px 12px}
+.business-panel.compact .impact-grid{grid-template-columns:1fr 1fr}
+.business-panel.compact .impact-card:nth-child(n+5){display:none}
+.business-panel.compact .impact-meta{display:block}
+.business-panel.compact .impact-meta strong{display:block;text-align:left;margin-top:6px}
+
+.region-curation{margin:4px 0 14px}
+.region-image-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.region-image-card{min-height:118px;border-radius:15px;padding:12px;display:flex;flex-direction:column;justify-content:end;overflow:hidden;
+  color:#fff;box-shadow:var(--sh-1);position:relative}
+.region-image-card::before{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 15%,rgba(0,0,0,.55) 100%)}
+.region-image-card b,.region-image-card span{position:relative;z-index:1}
+.region-image-card b{font-size:16px;font-weight:700;line-height:1.2}
+.region-image-card span{font-size:10.5px;line-height:1.35;margin-top:5px;color:rgba(255,255,255,.82)}
+.region-image-card.ink{background:linear-gradient(145deg,#241D16,#A83E2C)}
+.region-image-card.green{background:linear-gradient(145deg,#183B2C,#6E8B72)}
+.region-image-card.gold{background:linear-gradient(145deg,#5C4413,#D8B25A)}
+.local-route{display:grid;grid-template-columns:1fr;gap:8px}
+.local-route div{background:var(--surface);border:1px solid var(--line);border-radius:13px;padding:12px 13px;box-shadow:var(--sh-1)}
+.local-route b{display:block;font-size:14px;font-weight:700;color:var(--ink)}
+.local-route span{display:block;font-size:12px;color:var(--sub);line-height:1.45;margin-top:4px}
+.local-neighborhood{margin:8px 0 14px}
+.local-card-grid{display:grid;grid-template-columns:1fr;gap:9px}
+.local-card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px;box-shadow:var(--sh-1)}
+.local-card span{font-size:11px;font-weight:700;color:var(--gold-text);background:var(--gold-tint);border-radius:999px;padding:5px 8px}
+.local-card.partner span{color:#1D5EAD;background:var(--blue-tint)}
+.local-card b{display:block;font-size:16px;font-weight:700;color:var(--ink);margin-top:9px}
+.local-card p{font-size:12.5px;color:var(--sub);line-height:1.55;margin-top:5px}
+.taste-note{font-size:13px;line-height:1.6;color:var(--sub);margin-top:-2px}
 
 /* 칩 */
 .chips{display:flex;gap:8px;flex-wrap:wrap}
@@ -346,6 +420,10 @@ h2.scr-h{font-size:24px;font-weight:700;letter-spacing:0;color:var(--ink);line-h
   border-left:3px solid var(--blue)}
 .name-track-card h3,.name-hero h2{font-family:var(--serif);font-size:21px;font-weight:700;color:var(--ink);line-height:1.35}
 .name-track-card p,.name-hero p{font-size:13.5px;color:var(--sub);line-height:1.65;margin:8px 0 14px}
+.track-principles{display:grid;grid-template-columns:1fr;gap:7px;margin:12px 0 14px}
+.track-principles div{border:1px solid var(--line);border-radius:12px;padding:10px 11px;background:var(--surface-2)}
+.track-principles b{display:block;font-size:12px;font-weight:700;color:var(--ink);margin-bottom:3px}
+.track-principles span{display:block;font-size:11.8px;color:var(--sub);line-height:1.45}
 .track-list{display:flex;flex-direction:column;gap:9px}
 .track-row{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--line);border-radius:14px;
   padding:12px;cursor:pointer;box-shadow:var(--sh-1)}
@@ -357,7 +435,9 @@ h2.scr-h{font-size:24px;font-weight:700;letter-spacing:0;color:var(--ink);line-h
 .track-level.partial{background:var(--gold-tint);color:var(--gold-text)}
 .track-level.legend{background:color-mix(in srgb,var(--fact-legend) 13%,#fff);color:var(--fact-legend)}
 .track-level.draft{background:var(--surface-2);color:var(--sub)}
+.track-next{font-size:13.5px;line-height:1.7;color:var(--ink-soft)}
 .source-line{display:flex;gap:9px;align-items:flex-start;border-bottom:1px solid var(--line);padding:9px 0;font-size:13px;color:var(--sub);line-height:1.5}
+.source-line a{color:inherit;text-decoration:none;border-bottom:1px solid color-mix(in srgb,var(--brand) 34%,transparent)}
 .source-line:last-child{border-bottom:none}
 .source-line b{width:22px;height:22px;flex:0 0 22px;border-radius:8px;display:flex;align-items:center;justify-content:center;
   background:var(--gold-tint);color:var(--gold-text);font-size:11px}
