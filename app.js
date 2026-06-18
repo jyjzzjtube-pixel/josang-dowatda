@@ -400,6 +400,94 @@ function feedbackCta(scope){
     <div class="feedback-actions">${items.map(([id,label])=>`<button type="button" data-act="notify" data-feature="${id}:${scope}">${label}</button>`).join('')}</div>
   </section>`;
 }
+function trimText(v,n){
+  const text = String(v || '').replace(/\s+/g,' ').trim();
+  return text.length > n ? `${text.slice(0,n-1)}…` : text;
+}
+function storyChaptersForClan(c){
+  const firstTour = c.course?.day1?.[0] || c.region;
+  const firstFood = c.food?.[0] || '지역 음식';
+  return [
+    ['1장 · 이름의 출발', `${c.bonHanja} ${c.surnameHanja}氏`, trimText(c.story, 86)],
+    ['2장 · 기록의 사람', c.founder, trimText(c.history || c.origin, 86)],
+    ['3장 · 오늘의 지역', c.region, `${firstTour}에서 시작해 ${firstFood}까지 이어지는 지역 루트로 봅니다.`]
+  ];
+}
+function storyChaptersForTrack(t){
+  return [
+    ['1장 · 이름 단서', hanjaLine(t) || t.title, trimText(t.story, 86)],
+    ['2장 · 지역 단서', t.region, trimText(t.origin, 86)],
+    ['3장 · 확인 방식', trackGroup(t), trackAction(t)]
+  ];
+}
+function storyBoard(title, subtitle, chapters, quizAttrs){
+  return `<section class="story-board">
+    <div class="story-board-head">
+      <div><span>스토리텔링</span><b>${esc(title)}</b><p>${esc(subtitle)}</p></div>
+      <button type="button" data-act="openQuiz" ${quizAttrs}>이야기 퀴즈</button>
+    </div>
+    <div class="story-steps">${chapters.map(([k,h,b])=>`<article>
+      <span>${esc(k)}</span><b>${esc(h)}</b><p>${esc(b)}</p>
+    </article>`).join('')}</div>
+  </section>`;
+}
+function clanStoryBoard(c){
+  return storyBoard(`${clanName(c)} 3장 이야기`, '유래를 읽고 바로 퀴즈로 확인합니다.', storyChaptersForClan(c), `data-qtype="clan" data-surname="${esc(c.surname)}" data-bon="${esc(c.bon)}"`);
+}
+function trackStoryBoard(t){
+  return storyBoard(`${t.title} 3장 이야기`, '본관 단정 없이 이름·지역·확인 방식을 나눠 봅니다.', storyChaptersForTrack(t), `data-qtype="track" data-track="${esc(t.id)}"`);
+}
+function routeStoryBoard(clan, track){
+  if(clan) return clanStoryBoard(clan);
+  return trackStoryBoard(track);
+}
+function routeQuizPanel(clan, track){
+  const title = clan ? clanName(clan) : track.title;
+  const attrs = clan ? `data-qtype="clan" data-surname="${esc(clan.surname)}" data-bon="${esc(clan.bon)}"` : `data-qtype="track" data-track="${esc(track.id)}"`;
+  return `<section class="route-quiz-panel">
+    <div><span>퀴즈로 기억하기</span><b>${esc(title)} 맞춤 퀴즈</b><p>방금 본 유래·지역·확인 방식을 바로 풀어봅니다.</p></div>
+    <button type="button" data-act="openQuiz" ${attrs}>퀴즈 시작</button>
+  </section>`;
+}
+function hashText(v){
+  let h=2166136261;
+  for(const ch of String(v||'')){ h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); }
+  return h >>> 0;
+}
+function dayKey(offset){
+  const d = new Date();
+  d.setDate(d.getDate()+offset);
+  return `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`;
+}
+function fortuneFor(label, region, offset){
+  const seed = hashText(`${label}|${region}|${dayKey(offset)}`);
+  const tones = ['가볍게 확인하는 날','지역 단서가 보이는 날','기록을 나눠 보는 날','한 걸음 저장하는 날','가족 질문이 잘 맞는 날'];
+  const actions = ['지도에서 장소 하나 저장하기','가족에게 오래 산 동네 물어보기','한자 한 글자 따라쓰기','지역 음식 하나 읽어보기','스토리 스팟 하나 눌러보기'];
+  const focus = ['기록', '지역', '음식', '질문', '사진'];
+  const lucky = ['주칠', '금분', '초록', '먹빛', '한지'];
+  return {
+    tone: tones[seed % tones.length],
+    action: actions[Math.floor(seed/7) % actions.length],
+    focus: focus[Math.floor(seed/13) % focus.length],
+    lucky: lucky[Math.floor(seed/17) % lucky.length]
+  };
+}
+function fortunePanel(clan, track){
+  const label = clan ? clanName(clan) : track.title;
+  const region = clan?.region || track?.region || '생활권';
+  const today = fortuneFor(label, region, 0);
+  const tomorrow = fortuneFor(label, region, 1);
+  const card = (name, f) => `<article><span>${name}</span><b>${f.tone}</b><p>${f.action}</p><em>오늘의 단서 ${f.focus} · 색 ${f.lucky}</em></article>`;
+  return `<section class="fortune-panel">
+    <div class="sec-label">재미로 보는 오늘의 운세</div>
+    <h3>${esc(label)} 운세 카드</h3>
+    <p>성씨와 본관은 운명을 정하지 않습니다. 이 카드는 학습과 여행을 가볍게 시작하는 오락용 추천입니다.</p>
+    <div class="fortune-grid">
+      ${card('오늘의 운세', today)}
+      ${card('내일의 운세', tomorrow)}
+    </div>
+  </section>`;
+}
 function homePathBar(){
   return `<div class="path-bar">
     <span>이름 입력</span><i></i><span>확인 방식 선택</span><i></i><span>15초 루트카드</span>
@@ -730,11 +818,13 @@ function screenRouteResult(p){
         <span>1 확인 방식</span><i></i><span>2 지역 지도</span><i></i><span>3 뿌리여권</span><i></i><span>4 스토리 스팟</span>
       </div>
     </section>
+    ${routeStoryBoard(clan, track)}
     <section class="route-result-grid">
       ${routeResultHeroCard('지역 루트', r.region, `${r.tour}에서 시작해 ${r.food}까지 이어지는 하루 코스입니다.`)}
       ${routeResultHeroCard('기록 상태', clan?levelLabel(clan.verifyLevel):levelLabel(track.verifyLevel), '출처 등급을 올리기 전에는 개인 가계로 확정하지 않습니다.')}
       ${routeResultHeroCard('수익 연결', '스토리 스팟', '광고·협찬 라벨을 붙인 지역 가게 카드와 지자체 리포트로 확장합니다.')}
     </section>
+    ${fortunePanel(clan, track)}
     <section class="route-next-actions">
       <div class="route-next-main">
         <span>${clan?'문헌 기록 후보':'성씨·연원 기록 후보'}</span>
@@ -747,6 +837,7 @@ function screenRouteResult(p){
         ${track?`<button type="button" class="alt" data-act="goNameTrack" data-track="${track.id}">성씨·연원 기록</button>`:''}
       </div>
     </section>
+    ${routeQuizPanel(clan, track)}
     ${missionPanel(`route-${norm(routeTitle)}`,'이 루트로 찍는 뿌리여권')}
     ${routeBusinessPackage()}
     ${businessImpactSection('compact')}
@@ -926,6 +1017,8 @@ function screenNameTrack(p){
       <div>${storyBadge(track)} ${factBadge(track.verifyLevel)}</div>
     </section>
     ${routeSavePanel('track', track)}
+    ${trackStoryBoard(track)}
+    ${fortunePanel(null, track)}
     ${nameTrackFunPreview(track)}
     ${missionPanel(`track-${track.id}`,'이 이름 길에서 해볼 미션')}
     ${feedbackCta('nameTrack')}
@@ -963,6 +1056,8 @@ function screenClan(p){
       <button class="hanja-btn" data-act="hanja" data-surname="${c.surname}" data-bon="${c.bon}">${IC.pen} 한자 따라쓰기</button>
     </div>
     ${routeSavePanel('clan', c)}
+    ${clanStoryBoard(c)}
+    ${fortunePanel(c, null)}
     ${clanFunPreview(c)}
     ${missionPanel(`clan-${c.surname}-${c.bon}`,'이 지역에서 해볼 미션')}
     ${also}
@@ -1516,12 +1611,35 @@ function hzQuiz(){
 }
 function closeHanja(){ const m=$('hanjaModal'); if(m){ m.classList.remove('on'); HZ=null; setTimeout(()=>{ if(m&&m.parentNode) m.remove(); },220); } }
 
-/* ---- 뿌리 퀴즈 (출처 등급이 있는 가문만 출제) ---- */
-let QZ={score:0,total:0,q:null,answered:false};
+/* ---- 뿌리 퀴즈 (출처 등급이 있는 가문 + 성씨·연원 기록) ---- */
+let QZ={score:0,total:0,q:null,answered:false,questions:null,title:'뿌리 퀴즈'};
 function quizPool(){ return CLANS.filter(c=>c.verifyLevel!=='draft'); }
 function qShuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); const t=a[i];a[i]=a[j];a[j]=t; } return a; }
 function qPick(vals,correct,n){ const p=[...new Set(vals)].filter(v=>v&&v!==correct); qShuffle(p); return p.slice(0,n); }
+function quizItem(q, correct, options, explain){
+  return {q, correct, options:qShuffle([correct, ...qPick(options, correct, 3)]), explain};
+}
+function makeClanQuiz(c){
+  const L=x=>`${x.surname} ${x.bon}씨`;
+  const all = quizPool();
+  return [
+    quizItem(`${clanName(c)}의 연고지로 앱이 표시한 지역은 어디일까요?`, c.region, all.map(x=>x.region), `정답: ${c.region} · 개인 가계 확정이 아니라 지역 루트 안내입니다.`),
+    quizItem(`${clanName(c)} 화면에서 시조로 소개한 인물은 누구일까요?`, c.founder, all.map(x=>x.founder), `정답: ${c.founder} · 출처 등급은 ${levelLabel(c.verifyLevel)}입니다.`),
+    quizItem(`한자 본관 「${c.bonHanja}」은(는) 어느 기록 후보일까요?`, L(c), all.map(L), `정답: ${L(c)} · 한자와 지역을 함께 확인합니다.`),
+    quizItem(`이 앱에서 ${clanName(c)} 정보는 무엇으로 봐야 할까요?`, '문화관광 안내와 공개 기록 탐색', ['지역 여행 메모', '가족 질문 카드', '한자 연습 카드', '문화관광 안내와 공개 기록 탐색'], '정답: 문화관광 안내와 공개 기록 탐색 · 가계 증명서가 아닙니다.')
+  ];
+}
+function makeTrackQuiz(t){
+  const tracks = nameTracks();
+  return [
+    quizItem(`${t.title}은 앱에서 어떤 기록으로 구분하나요?`, trackGroup(t), tracks.map(trackGroup), `정답: ${trackGroup(t)} · 본관 기록과 낮고 높음으로 나누지 않습니다.`),
+    quizItem(`${t.title}의 지역 단서로 표시된 곳은 어디일까요?`, t.region, tracks.map(x=>x.region), `정답: ${t.region} · 좌표는 지역 중심 표시입니다.`),
+    quizItem(`${t.title}을 볼 때 앱이 피하는 방식은 무엇일까요?`, '확인 전 자동 연결', ['한자 확인', '생활권 확인', '확인 전 자동 연결', '가족 기억 확인'], '정답: 확인 전 자동 연결 · 모르는 것은 모른다고 표시합니다.'),
+    quizItem(`성씨·연원 기록의 핵심 태도는 무엇일까요?`, '확정 전에도 조상의 생활권을 존중', ['확정 전에도 조상의 생활권을 존중', '자료를 나눠 보기', '지역 단서 모으기', '가족 질문 남기기'], '정답: 확정 전에도 조상의 생활권을 존중 · 모든 이름을 같은 무게로 다룹니다.')
+  ];
+}
 function makeQ(){
+  if(QZ.questions?.length) return QZ.questions[Math.floor(Math.random()*QZ.questions.length)];
   const pool=quizPool(); const c=pool[Math.floor(Math.random()*pool.length)];
   const L=x=>`${x.surname} ${x.bon}씨`;
   const types=['fc','cr','hc','cf']; const t=types[Math.floor(Math.random()*types.length)];
@@ -1532,9 +1650,23 @@ function makeQ(){
   else { q=`${L(c)}의 시조(始祖)는 누구일까요?`; correct=c.founder; dist=qPick(pool.map(x=>x.founder),correct,3); }
   return {q,correct,options:qShuffle([correct,...dist]),explain:`정답: ${L(c)} · 시조 ${c.founder} · 연고지 ${c.region}`};
 }
-function openQuiz(){ QZ={score:0,total:0,q:null,answered:false};
+function quizContextFromButton(el){
+  if(!el) return {title:'뿌리 퀴즈', questions:null};
+  if(el.dataset.qtype === 'clan'){
+    const c = find(el.dataset.surname, el.dataset.bon);
+    if(c) return {title:`${clanName(c)} 이야기 퀴즈`, questions:makeClanQuiz(c)};
+  }
+  if(el.dataset.qtype === 'track'){
+    const t = findTrack(el.dataset.track);
+    if(t) return {title:`${t.title} 이야기 퀴즈`, questions:makeTrackQuiz(t)};
+  }
+  return {title:'뿌리 퀴즈', questions:null};
+}
+function openQuiz(el){
+  const ctx = quizContextFromButton(el);
+  QZ={score:0,total:0,q:null,answered:false,questions:ctx.questions,title:ctx.title};
   let m=$('quizModal'); if(!m){ m=document.createElement('div'); m.id='quizModal'; m.className='modal'; $('app').appendChild(m); }
-  m.innerHTML=`<div class="modal-card"><div class="modal-head"><div><div class="modal-title">뿌리 퀴즈</div>
+  m.innerHTML=`<div class="modal-card"><div class="modal-head"><div><div class="modal-title">${esc(QZ.title)}</div>
     <div class="modal-sub" id="qzScore"></div></div><div class="modal-close" data-act="quiz-close" role="button" aria-label="닫기">×</div></div>
     <div id="qzBody"></div></div>`;
   requestAnimationFrame(()=>m.classList.add('on')); nextQ();
@@ -1639,7 +1771,7 @@ document.addEventListener('click', e=>{
   else if(a==='hz-quiz') hzQuiz();
   else if(a==='hz-reset') hzLoad();
   else if(a==='hz-tab'){ HZ_IDX=+el.dataset.i; HZ_GUIDE_STEP=0; renderHzTabs(); hzLoad(); }
-  else if(a==='quiz') openQuiz();
+  else if(a==='quiz' || a==='openQuiz') openQuiz(el);
   else if(a==='quiz-answer') answerQuiz(+el.dataset.i);
   else if(a==='quiz-next') nextQ();
   else if(a==='quiz-close') closeQuiz();
@@ -1648,5 +1780,5 @@ document.addEventListener('click', e=>{
 /* ---- 부팅 ---- */
 render();
 if('serviceWorker' in navigator){
-  navigator.serviceWorker.register('sw.js?v=37').then(reg => reg.update()).catch(()=>{});
+  navigator.serviceWorker.register('sw.js?v=38').then(reg => reg.update()).catch(()=>{});
 }

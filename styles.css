@@ -228,6 +228,32 @@ h2.scr-h{font-size:24px;font-weight:700;letter-spacing:0;color:var(--ink);line-h
   background:var(--brand-weak);border-radius:999px;padding:5px 8px;margin-bottom:7px}
 .route-business-pack article b{display:block;font-size:14.5px;font-weight:700;color:var(--ink)}
 .route-business-pack article p{font-size:12px;color:var(--sub);line-height:1.5;margin-top:4px}
+.story-board{background:#fff;border:1px solid var(--line);border-radius:18px;padding:15px;margin:0 0 14px;box-shadow:var(--sh-1)}
+.story-board-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:12px}
+.story-board-head span{display:block;font-size:11px;font-weight:700;color:var(--brand-text);margin-bottom:4px}
+.story-board-head b{display:block;font-size:19px;font-weight:700;color:var(--ink);line-height:1.3}
+.story-board-head p{font-size:12px;color:var(--sub);line-height:1.5;margin-top:4px}
+.story-board-head button{flex:0 0 auto;border:0;border-radius:999px;background:var(--ink);color:#fff;min-height:38px;padding:8px 12px;font-size:12px;font-weight:700}
+.story-steps{display:grid;gap:8px}
+.story-steps article{border:1px solid var(--line);background:var(--surface-2);border-radius:14px;padding:12px}
+.story-steps article span{display:inline-flex;font-size:10.5px;font-weight:700;color:#1D5EAD;background:var(--blue-tint);border-radius:999px;padding:5px 8px;margin-bottom:7px}
+.story-steps article b{display:block;font-size:14.5px;font-weight:700;color:var(--ink);line-height:1.35}
+.story-steps article p{font-size:12px;color:var(--sub);line-height:1.5;margin-top:4px}
+.route-quiz-panel{display:flex;align-items:center;justify-content:space-between;gap:10px;background:linear-gradient(135deg,#1C1812 0%,#2A241B 100%);
+  color:#fff;border-radius:18px;padding:15px;margin:0 0 14px;box-shadow:var(--sh-ink)}
+.route-quiz-panel span{display:block;font-size:11px;font-weight:700;color:var(--gold-bright);margin-bottom:4px}
+.route-quiz-panel b{display:block;font-size:18px;font-weight:700;line-height:1.3}
+.route-quiz-panel p{font-size:12px;color:var(--on-ink-sub);line-height:1.45;margin-top:4px}
+.route-quiz-panel button{border:0;border-radius:999px;background:#fff;color:var(--ink);min-height:40px;padding:8px 12px;font-size:12px;font-weight:700;white-space:nowrap}
+.fortune-panel{background:linear-gradient(150deg,#fff 0%,#FFF7ED 54%,#F4EAD2 100%);border:1px solid #E9D4A7;border-radius:18px;padding:15px;margin:0 0 14px;box-shadow:var(--sh-1)}
+.fortune-panel h3{font-size:19px;font-weight:700;color:var(--ink);line-height:1.35}
+.fortune-panel>p{font-size:12px;color:var(--sub);line-height:1.55;margin:6px 0 12px}
+.fortune-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.fortune-grid article{background:rgba(255,255,255,.78);border:1px solid rgba(122,92,32,.18);border-radius:14px;padding:12px}
+.fortune-grid article span{display:inline-flex;font-size:10.5px;font-weight:700;color:var(--gold-text);background:var(--gold-tint);border-radius:999px;padding:5px 8px;margin-bottom:7px}
+.fortune-grid article b{display:block;font-size:14.5px;font-weight:700;color:var(--ink);line-height:1.35}
+.fortune-grid article p{font-size:12px;color:var(--ink-soft);line-height:1.45;margin-top:5px}
+.fortune-grid article em{display:block;font-style:normal;font-size:10.5px;color:var(--sub);line-height:1.35;margin-top:7px}
 .mission-panel{background:linear-gradient(180deg,#fff 0%,#F6F9F4 100%);border:1px solid var(--line);border-radius:18px;padding:16px;margin:14px 0;box-shadow:var(--sh-1)}
 .mission-panel h3{font-size:19px;font-weight:700;line-height:1.3;color:var(--ink);letter-spacing:0}
 .mission-panel p{font-size:12.5px;color:var(--sub);line-height:1.55;margin:6px 0 12px}
