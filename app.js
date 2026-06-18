@@ -46,6 +46,7 @@ let myClan = loadJSON('josang_myClan');
 let authUser = loadSessionJSON('josang_authUser');
 let searchMode = 'genealogy';
 let sponsorVisible = loadJSON('josang_sponsor_visible') === true;
+const PUBLIC_URL = 'https://korean-roots-journey.vercel.app/';
 const curRoute = () => stack[stack.length-1];
 const find = (s,b) => CLANS.find(c=>c.surname===s && c.bon===b);
 const bonsOf = s => CLANS.filter(c=>c.surname===s).sort((a,b)=>a.bon.localeCompare(b.bon,'ko'));
@@ -59,17 +60,70 @@ function leads(){ return loadJSON('josang_leads') || []; }
 function hasLead(f){ return leads().some(x=>x.feature===f); }
 function notify(f){ const a=leads(); if(!a.some(x=>x.feature===f)){ a.push({feature:f, ts:Date.now()}); localStorage.setItem('josang_leads', JSON.stringify(a)); } toast('출시되면 알려드릴게요 · 신청 완료'); render(); }
 function savedRoutes(){ return loadJSON('josang_savedRoutes') || []; }
+function saveLocalJSON(k,v){ localStorage.setItem(k, JSON.stringify(v)); }
 function saveRoute(type,id,label,meta){
   const a = savedRoutes();
   const key = `${type}:${id}`;
   if(!a.some(x=>x.key===key)){
     a.unshift({key,type,id,label,meta,ts:Date.now()});
-    localStorage.setItem('josang_savedRoutes', JSON.stringify(a.slice(0,20)));
+    saveLocalJSON('josang_savedRoutes', a.slice(0,20));
   }
   toast('이 루트를 이 기기에 저장했습니다');
   render();
 }
 function routeSaved(type,id){ return savedRoutes().some(x=>x.key===`${type}:${id}`); }
+function removeRoute(key){
+  saveLocalJSON('josang_savedRoutes', savedRoutes().filter(x=>x.key!==key));
+  toast('저장한 루트를 삭제했습니다');
+  render();
+}
+function missionState(){ return loadJSON('josang_missions') || {}; }
+function toggleMission(id){
+  const m = missionState();
+  m[id] = !m[id];
+  saveLocalJSON('josang_missions', m);
+  toast(m[id] ? '미션을 체크했습니다' : '미션 체크를 해제했습니다');
+  render();
+}
+function copyText(text, okMsg){
+  const done = () => toast(okMsg || '복사했습니다');
+  if(navigator.clipboard?.writeText){
+    navigator.clipboard.writeText(text).then(done).catch(()=>copyTextFallback(text, okMsg));
+    return;
+  }
+  copyTextFallback(text, okMsg);
+}
+function copyTextFallback(text, okMsg){
+  const area = document.createElement('textarea');
+  area.value = text;
+  area.setAttribute('readonly','');
+  area.style.position = 'absolute';
+  area.style.left = '-9999px';
+  document.body.appendChild(area);
+  area.select();
+  try{ document.execCommand('copy'); toast(okMsg || '복사했습니다'); }
+  catch(e){ toast('복사를 지원하지 않는 브라우저입니다'); }
+  area.remove();
+}
+function copyRouteCard(type,id,label,meta){
+  const kind = type === 'clan' ? '본관 기록' : '성씨·연원 기록';
+  copyText(`조상이 도왔다 루트 카드\n${label}\n${kind} · ${meta}\n개인 가계 확정이 아닌 지역·기록 탐색 카드입니다.\n${PUBLIC_URL}`, '루트 카드를 복사했습니다');
+}
+function openSavedRoute(key){
+  const item = savedRoutes().find(x=>x.key===key);
+  if(!item){ toast('저장한 루트를 찾지 못했습니다'); return; }
+  if(item.type === 'clan'){
+    const parts = String(item.id || '').split('-');
+    if(parts.length >= 2){ go('clan',{surname:parts[0], bon:parts.slice(1).join('-')}); return; }
+  }
+  if(item.type === 'track'){
+    const id = String(item.id || '');
+    if(id.startsWith('wide-')) go('nameTrack',{query:id.replace(/^wide-/,'') || item.label || ''});
+    else go('nameTrack',{track:id});
+    return;
+  }
+  toast('열 수 있는 루트 정보가 부족합니다');
+}
 
 /* ---- 출처 등급 배지 ---- */
 function srcBadge(level, label){ return `<span class="src-badge ${level}">${label}</span>`; }
@@ -255,8 +309,81 @@ function routeSavePanel(type,item){
   const saved = routeSaved(type,id);
   return `<div class="route-save-panel">
     <div><b>${saved?'저장된 루트':'이 루트 저장'}</b><span>이 기기에만 저장됩니다. 개인 가계나 혈통을 확정하지 않습니다.</span></div>
-    <button type="button" class="${saved?'saved':''}" data-act="saveRoute" data-type="${type}" data-id="${esc(id)}" data-label="${esc(label)}" data-meta="${esc(meta)}">${saved?'저장됨':'저장'}</button>
+    <div class="route-save-actions">
+      <button type="button" class="${saved?'saved':''}" data-act="saveRoute" data-type="${type}" data-id="${esc(id)}" data-label="${esc(label)}" data-meta="${esc(meta)}">${saved?'저장됨':'저장'}</button>
+      <button type="button" class="copy" data-act="copyRoute" data-type="${type}" data-id="${esc(id)}" data-label="${esc(label)}" data-meta="${esc(meta)}">루트 카드 복사</button>
+    </div>
   </div>`;
+}
+function savedRoutesSection(){
+  const items = savedRoutes();
+  const empty = `<div class="saved-empty"><b>저장한 루트가 아직 없습니다</b><span>본관 기록이나 성씨·연원 기록에서 “이 루트 저장”을 누르면 여기에 모입니다.</span></div>`;
+  const rows = items.map(item=>`<div class="saved-route">
+    <div class="saved-route-main">
+      <span>${item.type==='clan'?'본관 기록':'성씨·연원 기록'}</span>
+      <b>${esc(item.label)}</b>
+      <em>${esc(item.meta || '루트 기록')}</em>
+    </div>
+    <div class="saved-route-actions">
+      <button type="button" data-act="openSavedRoute" data-key="${esc(item.key)}">열기</button>
+      <button type="button" class="ghost" data-act="removeRoute" data-key="${esc(item.key)}">삭제</button>
+    </div>
+  </div>`).join('');
+  return `<section class="saved-routes">
+    <div class="saved-routes-head"><div><span>내 기기 보관함</span><b>저장한 루트</b></div><small>${items.length}개</small></div>
+    ${items.length?rows:empty}
+  </section>`;
+}
+const MISSION_ITEMS = [
+  ['photo','사진 한 장 보기','지역 이미지나 문화재 사진을 보고 한 줄로 느낌을 남깁니다.'],
+  ['hanja','한자 하나 따라쓰기','성씨나 본관 한자 중 하나를 천천히 따라 써봅니다.'],
+  ['food','지역 음식 하나 알아보기','향토음식·시장·노포 이야기를 먼저 읽습니다.'],
+  ['question','가족에게 물어볼 질문 1개','“우리 가족이 오래 산 동네는 어디였나요?”처럼 가볍게 시작합니다.']
+];
+function missionPanel(scope,label){
+  const state = missionState();
+  return `<section class="mission-panel">
+    <div class="sec-label">지역 미션 카드</div>
+    <h3>${esc(label || '오늘의 지역 미션')}</h3>
+    <p>공부처럼 무겁지 않게, 이름에서 지역으로 이어지는 작은 행동을 체크합니다.</p>
+    <div class="mission-grid">${MISSION_ITEMS.map(([id,title,body])=>{
+      const key = `${scope}:${id}`;
+      return `<button type="button" class="mission-card ${state[key]?'done':''}" data-act="toggleMission" data-id="${esc(key)}">
+        <b>${title}</b><span>${body}</span><em>${state[key]?'체크됨':'해보기'}</em>
+      </button>`;
+    }).join('')}</div>
+  </section>`;
+}
+function reportDemoPanel(){
+  const checked = Object.values(missionState()).filter(Boolean).length;
+  const metrics = [
+    ['저장한 루트', savedRoutes().length],
+    ['미션 체크', checked],
+    ['알림 신청', leads().length],
+    ['협찬 스팟 확인', sponsorVisible ? 1 : 0]
+  ];
+  return `<section class="report-panel">
+    <div class="sec-label">월간 리포트 데모</div>
+    <h3>민간 파일럿 지표</h3>
+    <p>지자체·상권 제안 전에, 이 브라우저의 테스트 행동만 분리해 보는 샘플입니다.</p>
+    <div class="report-grid">${metrics.map(([k,v])=>`<div class="metric-card"><b>${v}</b><span>${k}</span></div>`).join('')}</div>
+    <button type="button" class="report-copy" data-act="copyReport">리포트 문구 복사</button>
+  </section>`;
+}
+function copyReport(){
+  const checked = Object.values(missionState()).filter(Boolean).length;
+  copyText(`조상이 도왔다 월간 리포트 데모\n저장한 루트 ${savedRoutes().length}개\n미션 체크 ${checked}개\n알림 신청 ${leads().length}개\n협찬 스팟 확인 ${sponsorVisible ? 1 : 0}회\n이 수치는 현재 브라우저의 민간 파일럿 테스트 값이며, 공공 인증이나 수익 보장을 의미하지 않습니다.`, '리포트 문구를 복사했습니다');
+}
+function feedbackCta(scope){
+  const items = [
+    ['표현신고','불쾌한 표현 신고'],
+    ['자료정정','자료 정정 요청'],
+    ['귀속오류','가계 귀속 오류 신고']
+  ];
+  return `<section class="feedback-cta">
+    <div><b>표현·자료 바로잡기</b><span>사람을 평가하거나 개인 가계를 확정하는 표현은 받지 않습니다.</span></div>
+    <div class="feedback-actions">${items.map(([id,label])=>`<button type="button" data-act="notify" data-feature="${id}:${scope}">${label}</button>`).join('')}</div>
+  </section>`;
 }
 function homePathBar(){
   return `<div class="path-bar">
@@ -420,6 +547,7 @@ function businessImpactSection(mode){
       <button type="button" class="${sponsorVisible?'on':''}" data-act="toggleSponsor">${sponsorVisible?'켜짐':'보기'}</button>
     </div>
     ${sponsorVisible?sponsorSpotCards():''}
+    ${reportDemoPanel()}
     <div class="risk-note">수익·방문 효과를 보장하지 않습니다. 광고·협찬 라벨을 표시하고, 개인 계보나 민감정보를 광고 타깃으로 쓰지 않는 방향으로 설계합니다.</div>
   </section>`;
 }
@@ -450,6 +578,7 @@ function screenHome(){
     ${authStrip('quiet')}
     ${homeMapPreview()}
     ${todayRegionShot()}
+    ${missionPanel('home','오늘 바로 해볼 지역 미션')}
     <div class="home-branch">
       <b>문헌 기록만이 뿌리의 전부는 아닙니다.</b>
       <span>본관 문헌으로 바로 확정되지 않는 이름도 조상과 지역의 이야기를 가질 수 있습니다. 앱은 두 길을 동등하게, 그러나 헷갈리지 않게 나눠 보여줍니다.</span>
@@ -509,6 +638,7 @@ function screenSearchResult(p){
     ${found.clans.length?`<div class="row-head">본관 기록 후보</div>${clanRows}`:''}
     <div class="row-head">${found.tracks.length?'성씨·연원 기록 후보':'아직 자료가 적은 이름'}</div>
     ${found.tracks.length?`<div class="track-list">${trackRows}</div>`:`<div class="card zero-card"><b>아직 본관 기록으로 단정하지 않습니다.</b><span>그래도 빈손이 아닙니다. 이름이 이어진 생활권, 가족 기억, 공개 통계에서 시작하는 세 가지 기록 길을 선택할 수 있습니다.</span>${fallbackTrackCards(query)}<button class="btn" data-act="goNameTrack" data-query="${displayQuery(query)}">안전하게 기록 시작</button></div>`}
+    ${feedbackCta('search')}
     ${publicNotice()}
   </div>`;
 }
@@ -533,6 +663,7 @@ function screenMine(){
   if(!myClan){
     return `<div class="screen">
     ${authStrip()}
+    ${savedRoutesSection()}
     <div class="empty">
       <div class="big" aria-hidden="true">${IC.tree}</div><h3>아직 등록된 가문이 없어요</h3>
       <p>성씨와 본관, 또는 성씨·연원 기록을 찾아<br>이 기기에 테스트 저장할 수 있어요.</p>
@@ -548,6 +679,7 @@ function screenMine(){
       <div class="tg">“${c.tagline}”</div>
       <div class="meta">시조 ${c.founder} · 연고지 ${c.region}</div>
     </div>
+    ${savedRoutesSection()}
     <div class="clan-row" data-act="goClan" data-surname="${c.surname}" data-bon="${c.bon}">
       <div class="emblem" style="--c:${c.accent}">${c.bonHanja}</div>
       <div class="info"><div class="nm">가문 백과 다시 보기</div><div class="tg">시조·인물·문화재·여행</div></div>
@@ -582,6 +714,7 @@ function screenRegion(){
     </section>
     ${worldMapSection()}
     ${regionCurationSection()}
+    ${missionPanel('region','지도에서 고른 지역 미션')}
     ${businessImpactSection()}
     <div class="row-head compact">다음 연결 기능</div>
     ${items}
@@ -640,6 +773,8 @@ function screenNameTrack(p){
         ${factBadge('partial')}
       </section>
       ${routeSavePanel('track',{id:`wide-${query||'start'}`, title:query?`${query} 넓게 둘러보기`:'넓게 둘러보기 루트', region:'성씨·연원 기록'})}
+      ${missionPanel(`track-wide-${query||'start'}`,'본관을 모를 때 시작하는 미션')}
+      ${feedbackCta('nameTrack')}
       ${trackPrinciples()}
       <div id="nameMap"></div>
       <div class="card origin"><h4>분류 안내</h4><p>검색에서 바로 잡히지 않는 이름은 본관 모름, 희성·새 성씨, 다문화·귀화 이름처럼 따로 분류합니다. 이 분류는 낮은 단계가 아니라 확인 방식의 차이입니다. 두 출처 이상으로 확인되기 전까지는 출처 등급을 올리지 않습니다.</p></div>
@@ -657,6 +792,8 @@ function screenNameTrack(p){
       <div>${storyBadge(track)} ${factBadge(track.verifyLevel)}</div>
     </section>
     ${routeSavePanel('track', track)}
+    ${missionPanel(`track-${track.id}`,'이 이름 길에서 해볼 미션')}
+    ${feedbackCta('nameTrack')}
     <div id="nameMap"></div>
     <p class="story">${track.story}</p>
     <div class="card origin"><h4>${track.isGenealogy?'유래':'스토리텔링 방식'}</h4><p>${track.origin}</p>${storyBadge(track)} ${factBadge(track.verifyLevel)}</div>
@@ -689,9 +826,11 @@ function screenClan(p){
       <button class="hanja-btn" data-act="hanja" data-surname="${c.surname}" data-bon="${c.bon}">${IC.pen} 한자 따라쓰기</button>
     </div>
     ${routeSavePanel('clan', c)}
+    ${missionPanel(`clan-${c.surname}-${c.bon}`,'이 지역에서 해볼 미션')}
     ${also}
     <div class="seg" role="tablist">${seg}</div>
     <div id="subview">${subView(c, sub)}</div>
+    ${feedbackCta('clan')}
     <div class="action detail-actions">
       <div class="disclaimer">${c.verifyLevel==='draft'
         ? '<b style="color:var(--fact-todo)">이 가문 정보는 1차 정리 초안으로, 아직 확인 필요 상태입니다.</b> 통계청·한국민족문화대백과 등 공개 자료로 추가 확인 후 업데이트됩니다. '
@@ -1070,6 +1209,11 @@ document.addEventListener('click', e=>{
   else if(a==='toggleMapLayer') toggleMapLayer(el.dataset.layer);
   else if(a==='toggleSponsor'){ sponsorVisible=!sponsorVisible; localStorage.setItem('josang_sponsor_visible', JSON.stringify(sponsorVisible)); render(); }
   else if(a==='saveRoute') saveRoute(el.dataset.type, el.dataset.id, el.dataset.label, el.dataset.meta);
+  else if(a==='copyRoute') copyRouteCard(el.dataset.type, el.dataset.id, el.dataset.label, el.dataset.meta);
+  else if(a==='openSavedRoute') openSavedRoute(el.dataset.key);
+  else if(a==='removeRoute') removeRoute(el.dataset.key);
+  else if(a==='toggleMission') toggleMission(el.dataset.id);
+  else if(a==='copyReport') copyReport();
   else if(a==='register') registerClan(el.dataset.surname, el.dataset.bon);
   else if(a==='unregister') unregister();
   else if(a==='notify') notify(el.dataset.feature);
@@ -1096,5 +1240,5 @@ document.addEventListener('click', e=>{
 /* ---- 부팅 ---- */
 render();
 if('serviceWorker' in navigator){
-  navigator.serviceWorker.register('sw.js?v=30').then(reg => reg.update()).catch(()=>{});
+  navigator.serviceWorker.register('sw.js?v=31').then(reg => reg.update()).catch(()=>{});
 }
