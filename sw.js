@@ -1,9 +1,9 @@
 /* 조상이 도왔다 — 서비스워커(앱 셸 캐시, 설치형 PWA) */
-const CACHE = 'josang-v34';
+const CACHE = 'josang-v37';
 const ASSETS = [
-  './','./index.html','./styles.css?v=34','./app.js?v=34','./data.js?v=34',
+  './','./index.html','./styles.css?v=37','./app.js?v=37','./data.js?v=37',
   './manifest.webmanifest','./icon.svg',
-  './vendor/leaflet/leaflet.css?v=34','./vendor/leaflet/leaflet.js?v=34',
+  './vendor/leaflet/leaflet.css?v=37','./vendor/leaflet/leaflet.js?v=37',
   './vendor/leaflet/images/layers.png','./vendor/leaflet/images/layers-2x.png',
   './vendor/leaflet/images/marker-icon.png','./vendor/leaflet/images/marker-icon-2x.png',
   './vendor/leaflet/images/marker-shadow.png'
@@ -15,10 +15,13 @@ self.addEventListener('install', e => {
 self.addEventListener('activate', e => {
   e.waitUntil((async () => {
     const ks = await caches.keys();
-    await Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k)));
+    const oldKeys = ks.filter(k => k !== CACHE && k.startsWith('josang-'));
+    await Promise.all(oldKeys.map(k => caches.delete(k)));
     await self.clients.claim();
-    const windows = await self.clients.matchAll({type:'window', includeUncontrolled:true});
-    windows.forEach(client => client.navigate(client.url));
+    if (oldKeys.length) {
+      const windows = await self.clients.matchAll({type:'window', includeUncontrolled:true});
+      windows.forEach(client => client.navigate(client.url));
+    }
   })());
 });
 self.addEventListener('fetch', e => {

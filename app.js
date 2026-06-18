@@ -130,7 +130,7 @@ function openSavedRoute(key){
 /* ---- 출처 등급 배지 ---- */
 function srcBadge(level, label){ return `<span class="src-badge ${level}">${label}</span>`; }
 function levelLabel(level){
-  return ({verified:'공개자료 확인', partial:'출처 확인 중', legend:'전승·설화', draft:'개인 확인 단계'})[level] || '개인 확인 단계';
+  return ({verified:'공개자료 확인', partial:'자료 확인 단계', legend:'전승·설화', draft:'개인 확인 단계'})[level] || '개인 확인 단계';
 }
 function factBadge(level){
   const cls = level==='verified' ? 'verified' : level==='legend' ? 'legend' : level==='draft' ? 'todo' : 'partial';
@@ -277,6 +277,7 @@ function renderScreen(t){
     case 'region': return screenRegion();
     case 'clan': return screenClan(t.params);
     case 'nameTrack': return screenNameTrack(t.params||{});
+    case 'routeResult': return screenRouteResult(t.params||{});
     case 'searchResult': return screenSearchResult(t.params||{});
     default: return screenHome();
   }
@@ -688,6 +689,70 @@ function searchMatches(query){
   const clans = CLANS.filter(c => hit(c.surname) || hit(c.bon) || hit(c.surname+c.bon) || hit(c.bon+c.surname));
   const tracks = nameTracks().filter(t => hit(t.surname) || hit(t.bon) || hit(t.title) || hit(t.type) || hit(t.region) || hit(t.surname+t.bon));
   return {clans:[...new Map(clans.map(c=>[`${c.surname}-${c.bon}`,c])).values()], tracks:[...new Map(tracks.map(t=>[t.id,t])).values()]};
+}
+function routeResultModel(p){
+  const query = (p.query||'').trim();
+  const found = searchMatches(query);
+  const clan = p.mode === 'name' ? null : ((p.surname && p.bon ? find(p.surname,p.bon) : null) || found.clans[0] || null);
+  const track = (p.track ? findTrack(p.track) : null) || found.tracks[0] || findTrack('bon-unknown') || nameTracks()[0];
+  const region = clan?.region || track?.region || '지역 확인 전';
+  const food = clan?.food?.[0] || (track?.id==='ji-name-record' ? '운정식당 올뱅이국' : '지역 한 그릇 기억');
+  const tour = clan?.course?.day1?.[0] || (track?.id==='ji-name-record' ? '충주 중앙탑' : '생활권 지도');
+  return {query, found, clan, track, region, food, tour};
+}
+function routeResultHeroCard(label,value,body){
+  return `<div class="route-result-card"><span>${label}</span><b>${value}</b><p>${body}</p></div>`;
+}
+function routeBusinessPackage(){
+  const packs = [
+    ['이용자','뿌리여권','한자·가족질문·지역음식·사진 미션으로 재방문을 만듭니다.'],
+    ['소상공인','스토리 스팟','노포·전통시장·청년가게를 광고 라벨과 함께 지역 이야기로 연결합니다.'],
+    ['지자체','생활인구 리포트','검색·저장·지도 클릭·미션 체크를 지역 관심 지표로 묶습니다.']
+  ];
+  return `<section class="route-business-pack">
+    <div class="sec-label">사업 패키지</div>
+    <h3>사용자 재미가 지역 제안서가 되는 구조</h3>
+    <div>${packs.map(p=>`<article><span>${p[0]}</span><b>${p[1]}</b><p>${p[2]}</p></article>`).join('')}</div>
+  </section>`;
+}
+function screenRouteResult(p){
+  const r = routeResultModel(p);
+  const clan = r.clan;
+  const track = r.track;
+  const routeTitle = clan ? clanName(clan) : track.title;
+  const safeQuery = displayQuery(r.query || routeTitle || '이름');
+  return `<div class="screen">
+    <section class="route-result-hero">
+      <div class="sec-label">15초 루트 설계서</div>
+      <h2>「${safeQuery}」 다음 행동 3가지</h2>
+      <p>족보식 단정이 아니라, 문헌 기록·성씨연원·지역지도·소상공인 스팟을 나눠 보여주는 실행 화면입니다.</p>
+      <div class="route-result-steps">
+        <span>1 확인 방식</span><i></i><span>2 지역 지도</span><i></i><span>3 뿌리여권</span><i></i><span>4 스토리 스팟</span>
+      </div>
+    </section>
+    <section class="route-result-grid">
+      ${routeResultHeroCard('지역 루트', r.region, `${r.tour}에서 시작해 ${r.food}까지 이어지는 하루 코스입니다.`)}
+      ${routeResultHeroCard('기록 상태', clan?levelLabel(clan.verifyLevel):levelLabel(track.verifyLevel), '출처 등급을 올리기 전에는 개인 가계로 확정하지 않습니다.')}
+      ${routeResultHeroCard('수익 연결', '스토리 스팟', '광고·협찬 라벨을 붙인 지역 가게 카드와 지자체 리포트로 확장합니다.')}
+    </section>
+    <section class="route-next-actions">
+      <div class="route-next-main">
+        <span>${clan?'문헌 기록 후보':'성씨·연원 기록 후보'}</span>
+        <b>${routeTitle}</b>
+        <p>${clan?clan.tagline:track.story}</p>
+      </div>
+      <div class="route-next-buttons">
+        ${clan?`<button type="button" data-act="goClan" data-surname="${clan.surname}" data-bon="${clan.bon}">가문 상세</button>
+        <button type="button" data-act="goClanTravel" data-surname="${clan.surname}" data-bon="${clan.bon}">지도·1박2일</button>`:''}
+        ${track?`<button type="button" class="alt" data-act="goNameTrack" data-track="${track.id}">성씨·연원 기록</button>`:''}
+      </div>
+    </section>
+    ${missionPanel(`route-${norm(routeTitle)}`,'이 루트로 찍는 뿌리여권')}
+    ${routeBusinessPackage()}
+    ${businessImpactSection('compact')}
+    ${feedbackCta('routeResult')}
+    ${publicNotice()}
+  </div>`;
 }
 function screenSearchResult(p){
   const query = (p.query||'').trim();
@@ -1290,44 +1355,165 @@ function buildWorldMap(){
   });
 }
 
-/* ---- 한자 따라쓰기 (Hanzi Writer) ---- */
-let HZ=null, HZ_CHARS=[], HZ_IDX=0;
-function uniqHanja(c){ return [...new Set((c.bonHanja+c.surnameHanja).split('').filter(x=>/[一-鿿]/.test(x)))]; }
+/* ---- 글자 따라쓰기 (한자 획순 + 한글 이름) ---- */
+let HZ=null, HZ_CHARS=[], HZ_CLAN_CHARS=[], HZ_IDX=0, HZ_MODE='clan', HZ_TOTAL=0, HZ_GUIDE_STEP=0;
+const HANGUL_CHO = ['ㄱ','ㄲ','ㄴ','ㄷ','ㄸ','ㄹ','ㅁ','ㅂ','ㅃ','ㅅ','ㅆ','ㅇ','ㅈ','ㅉ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ'];
+const HANGUL_JUNG = ['ㅏ','ㅐ','ㅑ','ㅒ','ㅓ','ㅔ','ㅕ','ㅖ','ㅗ','ㅘ','ㅙ','ㅚ','ㅛ','ㅜ','ㅝ','ㅞ','ㅟ','ㅠ','ㅡ','ㅢ','ㅣ'];
+const HANGUL_JONG = ['','ㄱ','ㄲ','ㄳ','ㄴ','ㄵ','ㄶ','ㄷ','ㄹ','ㄺ','ㄻ','ㄼ','ㄽ','ㄾ','ㄿ','ㅀ','ㅁ','ㅂ','ㅄ','ㅅ','ㅆ','ㅇ','ㅈ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ'];
+function orderedHanja(v){ return [...String(v||'')].filter(x=>/[一-鿿]/.test(x)); }
+function orderedHangul(v){ return [...String(v||'').replace(/\s+/g,'')].filter(x=>/[가-힣ㄱ-ㅎㅏ-ㅣ]/.test(x)); }
+function uniqHanja(c){ return [...new Set(orderedHanja(c.bonHanja+c.surnameHanja+'氏'))]; }
 function openHanja(s,b){
-  const c=find(s,b); if(!c) return; HZ_CHARS=uniqHanja(c); HZ_IDX=0;
+  const c=find(s,b); if(!c) return; HZ_CLAN_CHARS=uniqHanja(c); HZ_CHARS=[...HZ_CLAN_CHARS]; HZ_IDX=0; HZ_MODE='clan'; HZ_GUIDE_STEP=0;
   let m=$('hanjaModal');
   if(!m){ m=document.createElement('div'); m.id='hanjaModal'; m.className='modal'; $('app').appendChild(m); }
   m.innerHTML=`<div class="modal-card">
-    <div class="modal-head"><div><div class="modal-title">한자 따라쓰기</div>
-      <div class="modal-sub">${clanName(c)} · ${c.bonHanja} ${c.surnameHanja}氏</div></div>
+    <div class="modal-head"><div><div class="modal-title">글자 따라쓰기</div>
+      <div class="modal-sub">${clanName(c)} · 획순서 가이드를 보고 천천히 씁니다</div></div>
       <div class="modal-close" data-act="hanja-close" role="button" aria-label="닫기">×</div></div>
+    <div class="hz-mode-switch" aria-label="따라쓰기 방식 선택">
+      <button class="hz-mode-btn on" data-act="hz-mode" data-mode="clan">성씨·본관 한자</button>
+      <button class="hz-mode-btn" data-act="hz-mode" data-mode="full">전체 이름 한자</button>
+      <button class="hz-mode-btn" data-act="hz-mode" data-mode="hangul">한글 이름</button>
+    </div>
+    <div class="hz-input-panel" id="hzFullPanel">
+      <label>전체 이름 한자</label>
+      <div><input id="hzFullName" placeholder="예: 池旼俊"><button data-act="hz-apply-full">이름 한자 쓰기</button></div>
+      <p>한자 이름을 아는 경우 성과 이름 전체를 글자별로 연습합니다.</p>
+    </div>
+    <div class="hz-input-panel" id="hzHangulPanel">
+      <label>한글 이름 따라쓰기</label>
+      <div><input id="hzHangulName" placeholder="예: 지민준"><button data-act="hz-apply-hangul">한글 이름 쓰기</button></div>
+      <p>한자 이름이 없거나 모르면 한글 이름을 초성·중성·종성 순서로 연습합니다.</p>
+    </div>
     <div class="hz-tabs" id="hzTabs"></div>
     <div class="hz-mean" id="hzMean"></div>
+    <div class="hz-guide" id="hzGuide"></div>
     <div class="hz-stage"><div id="hzTarget"></div></div>
-    <div class="hz-caption" id="hzCaption">‘획순 보기’로 순서를 보고, ‘따라쓰기’로 천천히 그려보세요.</div>
+    <div class="hz-caption" id="hzCaption">‘획순 보기’로 순서를 보고, ‘따라쓰기 시작’으로 천천히 그려보세요.</div>
     <div class="hz-controls">
       <button class="hz-btn" data-act="hz-animate">획순 보기</button>
-      <button class="hz-btn primary" data-act="hz-quiz">따라쓰기</button>
+      <button class="hz-btn primary" data-act="hz-quiz">따라쓰기 시작</button>
       <button class="hz-btn" data-act="hz-reset">다시</button></div></div>`;
   requestAnimationFrame(()=>m.classList.add('on'));
-  renderHzTabs(); hzLoad();
+  renderHzModes(); renderHzTabs(); hzLoad();
 }
-function renderHzTabs(){ const t=$('hzTabs'); if(t) t.innerHTML=HZ_CHARS.map((ch,i)=>`<div class="hz-tab ${i===HZ_IDX?'on':''}" data-act="hz-tab" data-i="${i}">${ch}</div>`).join(''); }
+function renderHzModes(){
+  document.querySelectorAll('.hz-mode-btn').forEach(btn=>btn.classList.toggle('on', btn.dataset.mode===HZ_MODE));
+  const full=$('hzFullPanel'), hangul=$('hzHangulPanel');
+  if(full) full.classList.toggle('on', HZ_MODE==='full');
+  if(hangul) hangul.classList.toggle('on', HZ_MODE==='hangul');
+}
+function switchHzMode(mode){
+  HZ_MODE = mode || 'clan'; HZ_GUIDE_STEP=0; renderHzModes();
+  if(HZ_MODE==='clan'){
+    HZ_CHARS=[...HZ_CLAN_CHARS]; HZ_IDX=0; renderHzTabs(); hzLoad(); return;
+  }
+  if(HZ_MODE==='full'){ applyFullHanjaName(true); return; }
+  applyHangulName(true);
+}
+function applyFullHanjaName(quiet){
+  const chars = orderedHanja($('hzFullName')?.value || '');
+  if(!chars.length){ HZ_CHARS=[]; HZ_IDX=0; renderHzTabs(); renderHzEmpty('전체 이름 한자', quiet?'한자 이름을 입력하면 글자별 획순서를 보여드립니다.':'한자로 된 이름을 입력하세요.'); return; }
+  HZ_MODE='full'; HZ_CHARS=chars; HZ_IDX=0; HZ_GUIDE_STEP=0; renderHzModes(); renderHzTabs(); hzLoad();
+}
+function applyHangulName(quiet){
+  const chars = orderedHangul($('hzHangulName')?.value || '');
+  if(!chars.length){ HZ_CHARS=[]; HZ_IDX=0; renderHzTabs(); renderHzEmpty('한글 이름', quiet?'한글 이름을 입력하면 초성·중성·종성 순서로 안내합니다.':'한글 이름을 입력하세요.'); return; }
+  HZ_MODE='hangul'; HZ_CHARS=chars; HZ_IDX=0; HZ_GUIDE_STEP=0; renderHzModes(); renderHzTabs(); hzLoad();
+}
+function renderHzEmpty(title, msg){
+  HZ=null; HZ_TOTAL=0;
+  const mn=$('hzMean'); if(mn) mn.innerHTML=`<b>입력</b> <span>${title}</span>`;
+  const guide=$('hzGuide'); if(guide) guide.innerHTML=`<div class="hz-guide-top"><b>대기</b><span>${msg}</span></div>`;
+  const target=$('hzTarget'); if(target) target.innerHTML=`<div class="hz-empty">이름을 입력하고<br>따라쓰기 모드를 시작하세요</div>`;
+  const cap=$('hzCaption'); if(cap) cap.textContent=msg;
+}
+function renderHzTabs(){ const t=$('hzTabs'); if(t) t.innerHTML=HZ_CHARS.length?HZ_CHARS.map((ch,i)=>`<div class="hz-tab ${i===HZ_IDX?'on':''}" data-act="hz-tab" data-i="${i}">${ch}</div>`).join(''):`<div class="hz-tab empty">입력</div>`; }
 function hzLoad(){
-  const t=$('hzTarget'); if(!t) return; t.innerHTML=''; HZ=null;
-  const ch=HZ_CHARS[HZ_IDX]; const mn=$('hzMean'); if(mn) mn.innerHTML=`<b>${ch}</b> <span>${hunOf(ch)}</span>`;
+  const t=$('hzTarget'); if(!t) return; t.innerHTML=''; HZ=null; HZ_TOTAL=0; HZ_GUIDE_STEP=0;
+  if(!HZ_CHARS.length){ renderHzEmpty(HZ_MODE==='hangul'?'한글 이름':'전체 이름 한자','이름을 입력하면 따라쓰기 가이드가 열립니다.'); return; }
+  const ch=HZ_CHARS[HZ_IDX]; const mn=$('hzMean');
+  if(mn) mn.innerHTML=`<b>${ch}</b> <span>${HZ_MODE==='hangul'?'한글 이름':hunOf(ch)}</span>`;
   const cap=$('hzCaption');
+  if(HZ_MODE==='hangul'){ renderHangulTrace(ch); return; }
+  updateHanziGuide(ch, 0, 0, 'ready');
+  if(cap) cap.textContent=`${ch} 글자는 먼저 획순 보기로 방향을 보고, 따라쓰기 시작을 누르면 현재 획을 안내합니다.`;
   if(typeof HanziWriter==='undefined'){ if(cap)cap.textContent='한자 데이터를 불러오는 중이에요. 잠시 후 다시 눌러주세요.'; return; }
   HZ=HanziWriter.create('hzTarget', HZ_CHARS[HZ_IDX], {
     width:240,height:240,padding:12,showOutline:true,showCharacter:false,
     strokeColor:'#1C1A17',radicalColor:'#B04A33',outlineColor:'#E2DBC9',
     drawingColor:'#B04A33',drawingWidth:26,highlightColor:'#C9A227',
     strokeAnimationSpeed:1.1,delayBetweenStrokes:260,
+    onLoadCharDataSuccess:function(data){ HZ_TOTAL = data?.strokes?.length || 0; updateHanziGuide(ch, 0, HZ_TOTAL, 'ready'); },
     onLoadCharDataError:function(){ if(cap)cap.textContent='이 글자는 따라쓰기 데이터를 준비 중이에요.'; }
   });
 }
-function hzAnimate(){ const cap=$('hzCaption'); if(HZ){ if(cap)cap.textContent='쓰는 순서를 잘 보세요.'; HZ.animateCharacter(); } }
-function hzQuiz(){ const cap=$('hzCaption'); if(HZ){ if(cap)cap.textContent='회색 선을 따라 천천히 그려보세요.'; HZ.quiz({showHintAfterMisses:1,onComplete:function(){ if(cap)cap.textContent='완성했어요! 잘했어요.'; }}); } }
+function updateHanziGuide(ch, current, total, state){
+  const guide=$('hzGuide'); if(!guide) return;
+  const totalText = total ? `${total}획 글자` : '획순 데이터 확인 중';
+  const focus = current ? `${current}획째를 쓰는 중` : '1획부터 방향을 확인';
+  guide.innerHTML=`<div class="hz-guide-top"><b>${HZ_IDX+1}/${HZ_CHARS.length}</b><span>${totalText} · ${focus}</span></div>
+    <ol>
+      <li class="${state==='ready'||state==='animate'?'on':''}">획순 보기로 시작점과 방향을 먼저 봅니다.</li>
+      <li class="${state==='quiz'?'on':''}">따라쓰기 시작 후 붉은 선 기준으로 현재 획을 씁니다.</li>
+      <li class="${state==='complete'?'on':''}">막히면 힌트가 나오고, 끝나면 다음 글자로 넘어갑니다.</li>
+    </ol>`;
+}
+function hangulParts(ch){
+  const code = ch.charCodeAt(0) - 0xAC00;
+  if(code < 0 || code > 11171) return [ch, '모양', ''];
+  const cho = Math.floor(code / 588);
+  const jung = Math.floor((code % 588) / 28);
+  const jong = code % 28;
+  return [HANGUL_CHO[cho], HANGUL_JUNG[jung], HANGUL_JONG[jong]];
+}
+function hangulSteps(ch){
+  const [cho,jung,jong] = hangulParts(ch);
+  return [`초성 ${cho} 먼저 자리 잡기`, `중성 ${jung}을 이어 쓰기`, jong ? `종성 ${jong} 받침 마무리` : '받침 없이 균형 확인'];
+}
+function renderHangulTrace(ch){
+  const steps = hangulSteps(ch);
+  const guide=$('hzGuide');
+  if(guide) guide.innerHTML=`<div class="hz-guide-top"><b>${HZ_IDX+1}/${HZ_CHARS.length}</b><span>초성 → 중성 → 종성 순서</span></div>
+    <ol>${steps.map((s,i)=>`<li class="${i===0?'on':''}">${s}</li>`).join('')}</ol>`;
+  const target=$('hzTarget');
+  if(target) target.innerHTML=`<div class="hangul-trace" id="hangulTrace">
+    <div class="hangul-outline">${esc(ch)}</div>
+    <div class="hangul-step-label">초성 → 중성 → 종성</div>
+  </div>`;
+  const cap=$('hzCaption');
+  if(cap) cap.textContent=`${ch} 글자는 ${steps.join(' → ')} 순서로 따라 씁니다.`;
+}
+function advanceHangulGuide(){
+  const steps=[...document.querySelectorAll('#hzGuide li')];
+  if(!steps.length) return;
+  HZ_GUIDE_STEP=(HZ_GUIDE_STEP+1)%steps.length;
+  steps.forEach((s,i)=>s.classList.toggle('on', i===HZ_GUIDE_STEP));
+  const cap=$('hzCaption');
+  if(cap) cap.textContent=`${HZ_GUIDE_STEP+1}단계: ${steps[HZ_GUIDE_STEP].textContent}`;
+}
+function startHangulTrace(){
+  $('hangulTrace')?.classList.add('trace-active');
+  const cap=$('hzCaption');
+  if(cap) cap.textContent='흐린 글자 위를 손가락이나 펜으로 천천히 따라 써보세요.';
+}
+function hzAnimate(){
+  const cap=$('hzCaption');
+  if(HZ_MODE==='hangul'){ advanceHangulGuide(); return; }
+  const ch=HZ_CHARS[HZ_IDX];
+  if(HZ){ updateHanziGuide(ch, 0, HZ_TOTAL, 'animate'); if(cap)cap.textContent=`${ch} 획순서를 1획부터 끝획까지 보여줍니다.`; HZ.animateCharacter({onComplete:function(){ if(cap)cap.textContent='이제 따라쓰기 시작을 눌러 같은 순서로 써보세요.'; }}); }
+}
+function hzQuiz(){
+  const cap=$('hzCaption');
+  if(HZ_MODE==='hangul'){ startHangulTrace(); return; }
+  const ch=HZ_CHARS[HZ_IDX];
+  if(HZ){ if(cap)cap.textContent=`${ch} 따라쓰기 시작. 현재 획을 천천히 그리세요.`; updateHanziGuide(ch, 1, HZ_TOTAL, 'quiz'); HZ.quiz({showHintAfterMisses:1,
+    onCorrectStroke:function(s){ const done=(Number.isFinite(s?.strokeNum)?s.strokeNum+1:0); const next=done+1; updateHanziGuide(ch, next, HZ_TOTAL, s?.strokesRemaining===0?'complete':'quiz'); if(cap)cap.textContent=s?.strokesRemaining===0?'마지막 획까지 맞췄습니다.':'좋습니다. 다음 획으로 넘어갑니다.'; },
+    onMistake:function(){ if(cap)cap.textContent='현재 획의 시작점과 방향을 다시 확인하세요. 힌트가 표시됩니다.'; },
+    onComplete:function(){ updateHanziGuide(ch, HZ_TOTAL, HZ_TOTAL, 'complete'); if(cap)cap.textContent='완성했습니다. 다음 글자를 눌러 이어서 연습하세요.'; }
+  }); }
+}
 function closeHanja(){ const m=$('hanjaModal'); if(m){ m.classList.remove('on'); HZ=null; setTimeout(()=>{ if(m&&m.parentNode) m.remove(); },220); } }
 
 /* ---- 뿌리 퀴즈 (출처 등급이 있는 가문만 출제) ---- */
@@ -1385,19 +1571,19 @@ function doSearch(){
   const free = ($('freeName')?.value || '').trim();
   if(searchMode === 'name'){
     const selected = $('selTrack')?.value || '__auto__';
-    if(selected !== '__auto__'){ go('nameTrack',{track:selected, query:free}); return; }
-    go('nameTrack',{query:free || '본관 모름'});
+    if(selected !== '__auto__'){ go('routeResult',{track:selected, query:free, mode:'name'}); return; }
+    go('routeResult',{query:free || '본관 모름', mode:'name'});
     return;
   }
   if(free){
     const exact = CLANS.find(c=>norm(free).includes(norm(c.surname+c.bon)) || norm(free).includes(norm(c.bon+c.surname)));
-    if(exact){ go('clan',{surname:exact.surname, bon:exact.bon}); return; }
+    if(exact){ go('routeResult',{query:free, surname:exact.surname, bon:exact.bon}); return; }
     go('searchResult',{query:free});
     return;
   }
   const s=$('selS').value; let b=$('selB').value;
-  if(b==='__auto__'){ go('nameTrack',{query:`${s} 씨 본관 모름`}); return; }   /* 자동 특정 본관 귀속 금지(추측·쏠림 방지) */
-  go('clan',{surname:s, bon:b});
+  if(b==='__auto__'){ go('routeResult',{query:`${s} 씨 본관 모름`}); return; }   /* 자동 특정 본관 귀속 금지(추측·쏠림 방지) */
+  go('routeResult',{surname:s, bon:b, query:`${b} ${s}씨`});
 }
 
 /* ---- 렌더 후 처리 ---- */
@@ -1416,6 +1602,7 @@ document.addEventListener('click', e=>{
   if(a==='tab') tab(el.dataset.tab);
   else if(a==='back') back();
   else if(a==='goClan') go('clan',{surname:el.dataset.surname,bon:el.dataset.bon});
+  else if(a==='goClanTravel') go('clan',{surname:el.dataset.surname,bon:el.dataset.bon,sub:'여행'});
   else if(a==='goNameTrack') go('nameTrack',{track:el.dataset.track, query:el.dataset.query||''});
   else if(a==='goMine') tab('mine');
   else if(a==='sub'){ curRoute().params.sub = el.dataset.sub; render(); }
@@ -1445,10 +1632,13 @@ document.addEventListener('click', e=>{
   else if(a==='auth-reset') resetTestData();
   else if(a==='hanja') openHanja(el.dataset.surname, el.dataset.bon);
   else if(a==='hanja-close') closeHanja();
+  else if(a==='hz-mode') switchHzMode(el.dataset.mode);
+  else if(a==='hz-apply-full') applyFullHanjaName();
+  else if(a==='hz-apply-hangul') applyHangulName();
   else if(a==='hz-animate') hzAnimate();
   else if(a==='hz-quiz') hzQuiz();
   else if(a==='hz-reset') hzLoad();
-  else if(a==='hz-tab'){ HZ_IDX=+el.dataset.i; renderHzTabs(); hzLoad(); }
+  else if(a==='hz-tab'){ HZ_IDX=+el.dataset.i; HZ_GUIDE_STEP=0; renderHzTabs(); hzLoad(); }
   else if(a==='quiz') openQuiz();
   else if(a==='quiz-answer') answerQuiz(+el.dataset.i);
   else if(a==='quiz-next') nextQ();
@@ -1458,5 +1648,5 @@ document.addEventListener('click', e=>{
 /* ---- 부팅 ---- */
 render();
 if('serviceWorker' in navigator){
-  navigator.serviceWorker.register('sw.js?v=34').then(reg => reg.update()).catch(()=>{});
+  navigator.serviceWorker.register('sw.js?v=37').then(reg => reg.update()).catch(()=>{});
 }
