@@ -750,7 +750,7 @@ function screenRegion(){
     <section class="region-head">
       <div class="sec-label">지역 지도</div>
       <h2 class="scr-h">전국 루트 지도</h2>
-      <p>가문 연고지와 성씨·연원 기록을 먼저 보고, 관광지·맛집은 보조 레이어로 켭니다.</p>
+      <p>가문, 관광, 진짜맛집, 연원기록을 한 지도에서 켜고 끄며 봅니다. 마커를 누르면 상세내용이 바로 열립니다.</p>
     </section>
     ${worldMapSection()}
     ${regionCurationSection()}
@@ -790,12 +790,14 @@ function worldMapSection(){
     </div>
     <div class="layer-controls four" aria-label="전국 지도 레이어">
       <button class="layer-toggle on" data-act="toggleMapLayer" data-layer="family"><span class="dot family"></span>가문</button>
-      <button class="layer-toggle" data-act="toggleMapLayer" data-layer="tour"><span class="dot tour"></span>관광</button>
-      <button class="layer-toggle" data-act="toggleMapLayer" data-layer="food"><span class="dot food"></span>맛집</button>
+      <button class="layer-toggle on" data-act="toggleMapLayer" data-layer="tour"><span class="dot tour"></span>관광</button>
+      <button class="layer-toggle on" data-act="toggleMapLayer" data-layer="food"><span class="dot food"></span>진짜맛집</button>
       <button class="layer-toggle on" data-act="toggleMapLayer" data-layer="story"><span class="dot story"></span>연원기록</button>
     </div>
     <div id="worldMap"></div>
-    <div class="map-note">역사 문헌 기록은 CLANS, 성씨·연원 기록은 별도 스토리 트랙입니다 · 좌표는 지역 중심 표시</div>
+    <div class="map-note">지도 마커 클릭 시 상세내용이 아래 카드에 열립니다 · 출처 등급과 연결 루트를 함께 표시</div>
+    ${mapPointListShell()}
+    ${mapDetailShell()}
   </div>`;
 }
 
@@ -817,6 +819,8 @@ function screenNameTrack(p){
       ${feedbackCta('nameTrack')}
       ${trackPrinciples()}
       <div id="nameMap"></div>
+      ${mapPointListShell()}
+      ${mapDetailShell()}
       <div class="card origin"><h4>분류 안내</h4><p>검색에서 바로 잡히지 않는 이름은 본관 모름, 희성·새 성씨, 다문화·귀화 이름처럼 따로 분류합니다. 이 분류는 낮은 단계가 아니라 확인 방식의 차이입니다. 두 출처 이상으로 확인되기 전까지는 출처 등급을 올리지 않습니다.</p></div>
       <div class="row-head">선택할 수 있는 성씨·연원 기록</div>
       <div class="track-list">${rows}</div>
@@ -836,6 +840,8 @@ function screenNameTrack(p){
     ${missionPanel(`track-${track.id}`,'이 이름 길에서 해볼 미션')}
     ${feedbackCta('nameTrack')}
     <div id="nameMap"></div>
+    ${mapPointListShell()}
+    ${mapDetailShell()}
     <p class="story">${track.story}</p>
     <div class="card origin"><h4>${track.isGenealogy?'유래':'스토리텔링 방식'}</h4><p>${track.origin}</p>${storyBadge(track)} ${factBadge(track.verifyLevel)}</div>
     <div class="card"><h4>다음 확인</h4><p class="track-next">${trackAction(track)}</p></div>
@@ -924,7 +930,7 @@ function clanFunPreview(c){
 function nameTrackFunPreview(track){
   const isJi = track.id === 'ji-name-record';
   const tour = isJi ? '충주 중앙탑 · 탄금대 · 남한강' : `${track.region} 생활권 · 가족 기억 · 공개 자료`;
-  const food = isJi ? '올뱅이국 · 꿩요리 · 충주 사과' : '지역 시장 · 오래 간 가게 · 가족 밥상';
+  const food = isJi ? '운정식당 올뱅이국 · 대장군식당 꿩요리 · 충주 사과' : '지역 시장 · 오래 간 가게 · 가족 밥상';
   return `<section class="detail-fun-preview story-mode">
     <div class="detail-fun-head">
       <div><span>성씨·연원 기록</span><b>족보 기록과 별도로 보는 지역 이야기</b></div>
@@ -961,13 +967,16 @@ function subView(c, sub){
   }
   if(sub==='여행'){
     return `<div class="map-card">
-      <div class="layer-controls" aria-label="지도 레이어">
+      <div class="layer-controls four" aria-label="지도 레이어">
         <button class="layer-toggle on" data-act="toggleMapLayer" data-layer="family"><span class="dot family"></span>가문 연고지</button>
         <button class="layer-toggle on" data-act="toggleMapLayer" data-layer="tour"><span class="dot tour"></span>관광지</button>
-        <button class="layer-toggle on" data-act="toggleMapLayer" data-layer="food"><span class="dot food"></span>맛집</button>
+        <button class="layer-toggle on" data-act="toggleMapLayer" data-layer="food"><span class="dot food"></span>진짜맛집</button>
+        <button class="layer-toggle on" data-act="toggleMapLayer" data-layer="story"><span class="dot story"></span>연원기록</button>
       </div>
       <div id="map"></div>
-      <div class="map-note">좌표가 있는 항목만 표시합니다 · 팝업에서 출처 등급을 확인하세요</div>
+      <div class="map-note">마커 클릭 시 상세내용이 아래 카드에 열립니다 · 출처 등급과 연결 루트를 함께 표시</div>
+      ${mapPointListShell()}
+      ${mapDetailShell()}
     </div>
       <div class="sec-mini">조상의 길 · 별미 · 관광을 잇는 1박 2일</div>
       <div class="card">${itinerary(c)}</div>
@@ -999,6 +1008,8 @@ function syncSticky(t){
 /* ---- 지도 ---- */
 let MAP, MAP_LAYERS={};
 let MAP_LAYER_STATE={family:true,tour:true,food:true,story:true};
+let MAP_SELECTED_POINT=null;
+let MAP_POINT_STORE={};
 const MAP_POINT_CATALOG = {
   "경기전":{lat:35.8157,lng:127.1497,type:"tour",desc:"태조 어진 봉안 유적",verifyLevel:"verified"},
   "전주 한옥마을":{lat:35.8151,lng:127.1530,type:"tour",desc:"전주 한옥 관광권역",verifyLevel:"verified"},
@@ -1030,19 +1041,93 @@ const MAP_POINT_CATALOG = {
   "수안보 온천":{lat:36.8466,lng:127.9954,type:"tour",desc:"충주 수안보 온천 관광권역",verifyLevel:"partial"},
   "충주 활옥동굴":{lat:36.9586,lng:127.9698,type:"tour",desc:"충주 동굴형 관광지",verifyLevel:"partial"},
   "충주 자유시장":{lat:36.9708,lng:127.9329,type:"tour",desc:"충주 도심 전통시장권",verifyLevel:"partial"},
-  "충주 올뱅이국":{lat:37.0169,lng:127.8625,type:"food",desc:"남한강 권역에서 함께 소개되는 충주 음식",verifyLevel:"partial"},
-  "충주 꿩요리":{lat:36.8466,lng:127.9954,type:"food",desc:"수안보 권역에서 알려진 충주 음식",verifyLevel:"partial"},
+  "운정식당 · 충주 올뱅이국":{lat:36.9796,lng:127.9316,type:"food",desc:"한국관광공사 충주 음식 기사에 소개된 올뱅이해장국 식당",detail:"대표 메뉴는 올뱅이해장국으로 소개되며, 충주 KBS·이마트 인근 주소가 공개 자료에 기재되어 있습니다.",source:"한국관광공사 대한민국 구석구석",sourceUrl:"https://korean.visitkorea.or.kr/detail/rem_detail.do?cotid=e79e6c19-6f39-4598-b0f0-d2d6c680fbe6",verifyLevel:"partial"},
+  "대장군식당 · 충주 꿩요리":{lat:36.8433,lng:127.9966,type:"food",desc:"한국관광공사 충주 음식 기사에 소개된 수안보 꿩요리 식당",detail:"전통 꿩코스요리와 주소가 공개 자료에 기재되어 있습니다. 영업 여부는 방문 전 확인이 필요합니다.",source:"한국관광공사 대한민국 구석구석",sourceUrl:"https://korean.visitkorea.or.kr/detail/rem_detail.do?cotid=e79e6c19-6f39-4598-b0f0-d2d6c680fbe6",verifyLevel:"partial"},
+  "충주 자유시장 먹거리":{lat:36.9708,lng:127.9329,type:"food",desc:"충주 도심 전통시장권에서 지역 먹거리를 함께 둘러보는 지점",detail:"개별 점포 추천이 아니라 시장권역 표시입니다. 실제 광고·협찬이 붙으면 별도 라벨을 표시합니다.",source:"한국관광공사 대한민국 구석구석",sourceUrl:"https://korean.visitkorea.or.kr/detail/rem_detail.do?cotid=1f390d1d-6f63-4c6b-8b53-737dc3e1a0b2",verifyLevel:"partial"},
+  "충주 올뱅이국":{lat:36.9796,lng:127.9316,type:"food",desc:"운정식당 등 충주 올뱅이해장국 권역",verifyLevel:"partial"},
+  "충주 꿩요리":{lat:36.8433,lng:127.9966,type:"food",desc:"수안보 권역에서 알려진 충주 음식",verifyLevel:"partial"},
   "막국수":{lat:36.991,lng:127.9259,type:"food",desc:"충주 여행 중 곁들일 수 있는 면 요리",verifyLevel:"partial"},
   "충주 사과":{lat:36.991,lng:127.9259,type:"food",desc:"충주 지역 특산물",verifyLevel:"partial"}
 };
 function mapPopup(p){
-  return `<b>${p.name}</b><br>${p.desc||''}<br><span class="popup-level ${p.verifyLevel}">${levelLabel(p.verifyLevel)}</span><br><small>가계 확정 아님 · 지역 중심 표시</small>`;
+  return `<b>${esc(p.name)}</b><br>${esc(p.desc||'')}<br><span class="popup-level ${p.verifyLevel}">${levelLabel(p.verifyLevel)}</span><br><small>아래 상세카드에서 출처와 연결 루트를 확인하세요</small>`;
 }
 function mapIcon(type){
-  return L.divIcon({className:'',html:`<div class="map-marker ${type}"></div>`,iconSize:[18,18],iconAnchor:[9,9]});
+  return L.divIcon({className:`map-icon-shell ${type}`,html:`<div class="map-marker ${type}"></div>`,iconSize:[24,24],iconAnchor:[12,12]});
 }
 function mapFallback(el, msg){
   el.innerHTML = `<div class="map-fallback"><b>지도를 준비 중입니다</b><span>${msg}</span></div>`;
+}
+function pointTypeLabel(type){
+  return ({family:'가문', tour:'관광', food:'진짜맛집', story:'연원기록'})[type] || '지도';
+}
+function mapDetailShell(){
+  return `<div id="mapDetailCard" class="map-detail-card empty" aria-live="polite">
+    <span>지도 마커 상세</span>
+    <b>마커를 누르면 상세내용이 여기에 열립니다</b>
+    <p>가문, 관광지, 진짜맛집, 연원기록을 색으로 구분하고 출처 등급을 같이 표시합니다.</p>
+  </div>`;
+}
+function mapPointListShell(){
+  return `<div id="mapPointList" class="map-point-list" aria-label="지도 항목 빠른 선택"></div>`;
+}
+function renderMapPointList(groups){
+  const el = $('mapPointList');
+  if(!el) return;
+  MAP_POINT_STORE={};
+  const order = [['family','가문'],['tour','관광'],['food','진짜맛집'],['story','연원기록']];
+  const html = order.map(([type,label])=>{
+    const items = (groups[type] || []).filter(p=>Number.isFinite(p.lat)&&Number.isFinite(p.lng)).slice(0,6);
+    if(!items.length) return '';
+    return `<div class="map-point-group"><span>${label}</span><div>${items.map((p,i)=>{
+      const key = `${type}-${i}-${norm(p.name)}`;
+      MAP_POINT_STORE[key]=p;
+      return `<button type="button" data-act="mapPointDetail" data-point="${esc(key)}"><i class="dot ${type}"></i>${esc(p.name)}</button>`;
+    }).join('')}</div></div>`;
+  }).join('');
+  el.innerHTML = html || '<div class="map-point-empty">표시할 지도 항목이 아직 없습니다.</div>';
+}
+function mapDetailAction(p){
+  const actions = [];
+  if(p.sourceUrl) actions.push(`<a href="${esc(p.sourceUrl)}" target="_blank" rel="noopener">출처 열기</a>`);
+  if(p.surname && p.bon) actions.push(`<button type="button" data-act="goClan" data-surname="${esc(p.surname)}" data-bon="${esc(p.bon)}">관련 가문 보기</button>`);
+  if(p.trackId) actions.push(`<button type="button" data-act="goNameTrack" data-track="${esc(p.trackId)}">연원기록 보기</button>`);
+  if(!actions.length) actions.push(`<button type="button" data-act="notify" data-feature="${esc(pointTypeLabel(p.type))}상세">이 장소 저장 알림</button>`);
+  return actions.join('');
+}
+function showMapDetail(p){
+  MAP_SELECTED_POINT=p;
+  const card = $('mapDetailCard');
+  if(!card) return;
+  const source = p.source || (p.type==='family' ? '가문/본관 공개 기록' : p.type==='story' ? '성씨·연원 기록' : p.type==='tour' ? '관광 공개 자료' : '음식·지역 공개 자료');
+  card.className = `map-detail-card ${p.type || ''}`;
+  card.innerHTML = `<div class="map-detail-top">
+      <span>${pointTypeLabel(p.type)}</span>
+      ${factBadge(p.verifyLevel || 'partial')}
+    </div>
+    <b>${esc(p.name)}</b>
+    <p>${esc(p.detail || p.desc || '상세 설명을 준비 중입니다.')}</p>
+    <div class="map-detail-meta">
+      <span>출처: ${esc(source)}</span>
+      <span>좌표: ${Number.isFinite(p.lat)?p.lat.toFixed(4):'-'}, ${Number.isFinite(p.lng)?p.lng.toFixed(4):'-'}</span>
+    </div>
+    <div class="map-detail-actions">${mapDetailAction(p)}</div>`;
+  setTimeout(()=>card.scrollIntoView({block:'nearest',behavior:'smooth'}), 40);
+}
+function markerForPoint(p){
+  const z = ({story:900, food:800, tour:700, family:600})[p.type] || 500;
+  const marker = L.marker([p.lat,p.lng],{icon:mapIcon(p.type), zIndexOffset:z, title:p.name, alt:p.name})
+    .bindPopup(mapPopup(p))
+    .on('click',()=>showMapDetail(p));
+  marker.on('add',()=>{
+    const icon = marker.getElement();
+    if(icon){
+      icon.dataset.mapType = p.type || '';
+      icon.dataset.mapName = p.name || '';
+      icon.addEventListener('click',()=>showMapDetail(p));
+    }
+  });
+  return marker;
 }
 function withLeaflet(el, fn){
   if(!el) return;
@@ -1055,11 +1140,14 @@ function catalogPoint(name, fallbackType){
   return {...p, name, type:p.type||fallbackType};
 }
 function clanMapPoints(c){
-  const family = [{name:`${clanName(c)} 연고지`,lat:c.lat,lng:c.lng,type:'family',desc:c.region,verifyLevel:c.verifyLevel||'partial'}];
+  const family = [{name:`${clanName(c)} 연고지`,lat:c.lat,lng:c.lng,type:'family',desc:c.region,detail:c.story,surname:c.surname,bon:c.bon,source:'가문/본관 공개 기록',verifyLevel:c.verifyLevel||'partial'}];
   const tourNames = [...(c.course?.day1||[]), ...(c.course?.day2||[])];
-  const tour = tourNames.map(n=>catalogPoint(n,'tour')).filter(Boolean);
-  const food = [...(c.food||[]), ...(c.specialty||[])].map(n=>catalogPoint(n,'food')).filter(Boolean);
-  return {family,tour,food};
+  const tour = tourNames.map(n=>catalogPoint(n,'tour')).filter(Boolean).map(p=>({...p,surname:c.surname,bon:c.bon,source:p.source||'관광 공개 자료'}));
+  const food = [...(c.food||[])].map(n=>catalogPoint(n,'food')).filter(Boolean).map(p=>({...p,surname:c.surname,bon:c.bon,source:p.source||'음식·지역 공개 자료'}));
+  const story = nameTracks()
+    .filter(t=>Number.isFinite(t.lat)&&Number.isFinite(t.lng)&&(t.surname===c.surname || norm(t.region).includes(norm(c.bon)) || norm(t.region).includes(norm(c.region))))
+    .map(t=>({name:t.title,lat:t.lat,lng:t.lng,type:'story',desc:`${trackKind(t)} · ${t.region}`,detail:t.story||t.origin,trackId:t.id,source:(t.sources||[])[0]||'성씨·연원 기록',sourceUrl:(t.sourceUrls||[])[0],verifyLevel:t.verifyLevel||'partial'}));
+  return {family,tour,food,story};
 }
 function updateMapLayerUI(){
   Object.keys(MAP_LAYER_STATE).forEach(k=>{
@@ -1086,9 +1174,10 @@ function buildMap(c){
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
       {maxZoom:19,subdomains:'abc',attribution:'© OpenStreetMap contributors'}).addTo(MAP);
     const points = clanMapPoints(c);
+    renderMapPointList(points);
     MAP_LAYERS = {};
     Object.entries(points).forEach(([type,items])=>{
-      MAP_LAYERS[type]=L.layerGroup(items.filter(p=>Number.isFinite(p.lat)&&Number.isFinite(p.lng)).map(p=>L.marker([p.lat,p.lng],{icon:mapIcon(type)}).bindPopup(mapPopup(p))));
+      MAP_LAYERS[type]=L.layerGroup(items.filter(p=>Number.isFinite(p.lat)&&Number.isFinite(p.lng)).map(p=>markerForPoint(p)));
     });
     const route = [...points.family, ...points.tour, ...points.food].filter(p=>Number.isFinite(p.lat)&&Number.isFinite(p.lng));
     if(route.length>1){
@@ -1099,6 +1188,7 @@ function buildMap(c){
     else MAP.setView([c.lat,c.lng],11);
     const first = points.family[0];
     if(first) L.popup().setLatLng([first.lat,first.lng]).setContent(mapPopup(first)).openOn(MAP);
+    if(first) showMapDetail(first);
     setTimeout(()=>MAP.invalidateSize(),120);
     setTimeout(()=>MAP.invalidateSize(),420);
   });
@@ -1112,28 +1202,42 @@ function buildNameTrackMap(track){
     MAP = L.map('nameMap',{zoomControl:true,attributionControl:true}).setView([36.5,127.8],6);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
       {maxZoom:19,subdomains:'abc',attribution:'© OpenStreetMap contributors'}).addTo(MAP);
-    points.forEach(p=>{
-      L.marker([p.lat,p.lng],{icon:mapIcon(p.isGenealogy?'family':'story')}).addTo(MAP)
-        .bindPopup(`<b>${p.title}</b><br>${p.region}<br>${trackKind(p)}<br><span class="popup-level ${p.verifyLevel}">${levelLabel(p.verifyLevel)}</span><br><small>가계 확정 아님 · 지역 중심 표시</small>`);
+    const mapItems = points.map(p=>({
+        name:p.title,
+        lat:p.lat,
+        lng:p.lng,
+        type:p.isGenealogy?'family':'story',
+        desc:`${trackKind(p)} · ${p.region}`,
+        detail:p.story || p.origin,
+        trackId:p.id,
+        source:(p.sources || [])[0] || '성씨·연원 기록',
+        sourceUrl:(p.sourceUrls || [])[0],
+        verifyLevel:p.verifyLevel || 'partial'
+    }));
+    renderMapPointList({
+      family:mapItems.filter(p=>p.type==='family'),
+      story:mapItems.filter(p=>p.type==='story')
     });
+    mapItems.forEach(item=>markerForPoint(item).addTo(MAP));
     if(points.length>1) MAP.fitBounds(L.latLngBounds(points.map(p=>[p.lat,p.lng])).pad(.25));
     else if(points[0]) MAP.setView([points[0].lat,points[0].lng],8);
+    if(mapItems[0]) showMapDetail(mapItems[0]);
     setTimeout(()=>MAP.invalidateSize(),120);
     setTimeout(()=>MAP.invalidateSize(),420);
   });
 }
 function worldMapPoints(){
   const family = CLANS.filter(c=>Number.isFinite(c.lat)&&Number.isFinite(c.lng)).map(c=>({
-    name:clanName(c), lat:c.lat, lng:c.lng, type:'family', desc:`가문/본관 기록 · ${c.region}`, verifyLevel:c.verifyLevel||'partial'
+    name:clanName(c), lat:c.lat, lng:c.lng, type:'family', desc:`가문/본관 기록 · ${c.region}`, detail:c.story, surname:c.surname, bon:c.bon, source:'가문/본관 공개 기록', verifyLevel:c.verifyLevel||'partial'
   }));
   const seen={};
   const allTours = [], allFood = [];
   CLANS.forEach(c=>{
-    [...(c.course?.day1||[]), ...(c.course?.day2||[])].forEach(n=>{ const p=catalogPoint(n,'tour'); if(p&&!seen[`t-${n}`]){ seen[`t-${n}`]=1; allTours.push(p); } });
-    [...(c.food||[]), ...(c.specialty||[])].forEach(n=>{ const p=catalogPoint(n,'food'); if(p&&!seen[`f-${n}`]){ seen[`f-${n}`]=1; allFood.push(p); } });
+    [...(c.course?.day1||[]), ...(c.course?.day2||[])].forEach(n=>{ const p=catalogPoint(n,'tour'); if(p&&!seen[`t-${n}`]){ seen[`t-${n}`]=1; allTours.push({...p,surname:c.surname,bon:c.bon,source:p.source||'관광 공개 자료'}); } });
+    [...(c.food||[])].forEach(n=>{ const p=catalogPoint(n,'food'); if(p&&!seen[`f-${n}`]){ seen[`f-${n}`]=1; allFood.push({...p,surname:c.surname,bon:c.bon,source:p.source||'음식·지역 공개 자료'}); } });
   });
   const story = nameTracks().filter(p=>Number.isFinite(p.lat)&&Number.isFinite(p.lng)).map(p=>({
-    name:p.title, lat:p.lat, lng:p.lng, type:'story', desc:`${trackKind(p)} · ${p.region}`, verifyLevel:p.verifyLevel||'partial'
+    name:p.title, lat:p.lat, lng:p.lng, type:'story', desc:`${trackKind(p)} · ${p.region}`, detail:p.story || p.origin, trackId:p.id, source:(p.sources || [])[0] || '성씨·연원 기록', sourceUrl:(p.sourceUrls || [])[0], verifyLevel:p.verifyLevel||'partial'
   }));
   return {family,tour:allTours,food:allFood,story};
 }
@@ -1141,18 +1245,21 @@ function buildWorldMap(){
   const el = $('worldMap'); if(!el) return;
   withLeaflet(el, ()=>{
     if(MAP){ MAP.remove(); MAP=null; }
-    MAP_LAYER_STATE={family:true,tour:false,food:false,story:true};
+    MAP_LAYER_STATE={family:true,tour:true,food:true,story:true};
     MAP = L.map('worldMap',{zoomControl:true,attributionControl:true}).setView([36.5,127.8],6);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
       {maxZoom:19,subdomains:'abc',attribution:'© OpenStreetMap contributors'}).addTo(MAP);
     const points = worldMapPoints();
+    renderMapPointList(points);
     MAP_LAYERS = {};
     Object.entries(points).forEach(([type,items])=>{
-      MAP_LAYERS[type]=L.layerGroup(items.map(p=>L.marker([p.lat,p.lng],{icon:mapIcon(type)}).bindPopup(mapPopup(p))));
+      MAP_LAYERS[type]=L.layerGroup(items.map(p=>markerForPoint(p)));
     });
     updateMapLayerUI();
     const route = Object.values(points).flat().filter(p=>Number.isFinite(p.lat)&&Number.isFinite(p.lng));
     if(route.length>1) MAP.fitBounds(L.latLngBounds(route.map(p=>[p.lat,p.lng])).pad(.16));
+    const first = [...points.family, ...points.story, ...points.tour, ...points.food][0];
+    if(first) showMapDetail(first);
     setTimeout(()=>MAP.invalidateSize(),120);
     setTimeout(()=>MAP.invalidateSize(),420);
   });
@@ -1292,6 +1399,7 @@ document.addEventListener('click', e=>{
   else if(a==='pickTrack'){ const sel=$('selTrack'); if(sel) sel.value=el.dataset.track; toast('이 출발점으로 안내합니다'); }
   else if(a==='search') doSearch();
   else if(a==='toggleMapLayer') toggleMapLayer(el.dataset.layer);
+  else if(a==='mapPointDetail'){ const point=MAP_POINT_STORE[el.dataset.point]; if(point) showMapDetail(point); }
   else if(a==='toggleSponsor'){ sponsorVisible=!sponsorVisible; localStorage.setItem('josang_sponsor_visible', JSON.stringify(sponsorVisible)); render(); }
   else if(a==='saveRoute') saveRoute(el.dataset.type, el.dataset.id, el.dataset.label, el.dataset.meta);
   else if(a==='copyRoute') copyRouteCard(el.dataset.type, el.dataset.id, el.dataset.label, el.dataset.meta);
@@ -1325,5 +1433,5 @@ document.addEventListener('click', e=>{
 /* ---- 부팅 ---- */
 render();
 if('serviceWorker' in navigator){
-  navigator.serviceWorker.register('sw.js?v=32').then(reg => reg.update()).catch(()=>{});
+  navigator.serviceWorker.register('sw.js?v=33').then(reg => reg.update()).catch(()=>{});
 }
