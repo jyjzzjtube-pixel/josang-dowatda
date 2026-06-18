@@ -45,6 +45,7 @@ function loadSessionJSON(k){ try{ return JSON.parse(sessionStorage.getItem(k)); 
 let myClan = loadJSON('josang_myClan');
 let authUser = loadSessionJSON('josang_authUser');
 let searchMode = 'genealogy';
+let sponsorVisible = loadJSON('josang_sponsor_visible') === true;
 const curRoute = () => stack[stack.length-1];
 const find = (s,b) => CLANS.find(c=>c.surname===s && c.bon===b);
 const bonsOf = s => CLANS.filter(c=>c.surname===s).sort((a,b)=>a.bon.localeCompare(b.bon,'ko'));
@@ -57,6 +58,18 @@ function tab(id){ stack=[{screen:id}]; render(); }
 function leads(){ return loadJSON('josang_leads') || []; }
 function hasLead(f){ return leads().some(x=>x.feature===f); }
 function notify(f){ const a=leads(); if(!a.some(x=>x.feature===f)){ a.push({feature:f, ts:Date.now()}); localStorage.setItem('josang_leads', JSON.stringify(a)); } toast('출시되면 알려드릴게요 · 신청 완료'); render(); }
+function savedRoutes(){ return loadJSON('josang_savedRoutes') || []; }
+function saveRoute(type,id,label,meta){
+  const a = savedRoutes();
+  const key = `${type}:${id}`;
+  if(!a.some(x=>x.key===key)){
+    a.unshift({key,type,id,label,meta,ts:Date.now()});
+    localStorage.setItem('josang_savedRoutes', JSON.stringify(a.slice(0,20)));
+  }
+  toast('이 루트를 이 기기에 저장했습니다');
+  render();
+}
+function routeSaved(type,id){ return savedRoutes().some(x=>x.key===`${type}:${id}`); }
 
 /* ---- 출처 등급 배지 ---- */
 function srcBadge(level, label){ return `<span class="src-badge ${level}">${label}</span>`; }
@@ -208,16 +221,17 @@ function searchCard(mode){
   const sList = [...new Set(CLANS.map(c=>c.surname))];
   const sOpts = sList.map(s=>`<option value="${s}">${s} 씨</option>`).join('');
   return `<div class="search-card ${primary?'primary-search':''}">
-    ${primary?`<div class="search-kicker">이름 하나로 시작</div><h2>${nameMode?'족보 없는 성씨도 루트 보기':'본관을 알아도, 몰라도 바로 찾기'}</h2><p>${nameMode?'본관 기록으로 단정하지 않고 생활 지역·가족 기억·공개 기록을 성씨·연원 기록으로 안내합니다.':'출처 등급이 있는 역사 문헌 기록과 성씨·연원 기록을 먼저 나눠 보여줍니다.'}</p>`:''}
+    ${primary?`<div class="search-kicker">이름 하나로 시작</div><h2>어디서 시작할까요?</h2><p>${nameMode?'성씨만 알거나 아직 잘 모를 때도 지역·기억·공개 자료로 루트지도를 열 수 있어요.':'성씨와 본관을 알고 있을 때는 문헌 기록부터 차분히 확인합니다.'}</p>`:''}
     ${searchModeSwitch()}
-    <div class="free-field"><label>${nameMode?'성씨·이름 상황':'자유 입력'}</label><input id="freeName" aria-label="성씨 또는 이름 길 검색" placeholder="${nameMode?'예: 설, 화산 이, 귀화성, 본관 모름':'예: 전주 이, 경주 김, 본관을 모르면 그대로 입력'}"></div>
+    <div class="free-field"><label>${nameMode?'아는 단서':'성씨·본관·지역'}</label><input id="freeName" aria-label="성씨 또는 이름 길 검색" placeholder="${nameMode?'예: 설, 화산 이, 가족이 오래 산 지역':'예: 전주 이, 경주 김, 안동'}"></div>
     ${nameMode?`<div class="search-row one">
+      ${trackQuickChips()}
       <div class="field"><label>분류</label><select id="selTrack" aria-label="성씨·연원 기록 분류">${trackOptions()}</select></div>
     </div>`:`<div class="search-row">
       <div class="field"><label>성씨</label><select id="selS" aria-label="성씨">${sOpts}</select></div>
       <div class="field"><label>본관</label><select id="selB" aria-label="본관">${bonOptions(sList[0])}</select></div>
     </div>`}
-    <button class="btn" data-act="search">${nameMode?'성씨·연원 루트 보기':'내 이름으로 루트 보기'}</button>
+    <button class="btn" data-act="search">${nameMode?'넓게 루트지도 열기':'기록으로 루트지도 열기'}</button>
   </div>`;
 }
 function trustRail(){
@@ -234,6 +248,16 @@ function publicNotice(){
     <span>가계 증명서가 아닙니다. 성씨·본관 정보를 문화관광 관점에서 안내하며, 계보 인증·신분 확인 용도로 사용할 수 없습니다.</span>
   </div>`;
 }
+function routeSavePanel(type,item){
+  const id = item.id || `${item.surname || ''}-${item.bon || ''}` || item.title;
+  const label = item.title || `${item.surname} ${item.bon}씨`;
+  const meta = item.region || trackGroup(item) || '루트 기록';
+  const saved = routeSaved(type,id);
+  return `<div class="route-save-panel">
+    <div><b>${saved?'저장된 루트':'이 루트 저장'}</b><span>이 기기에만 저장됩니다. 개인 가계나 혈통을 확정하지 않습니다.</span></div>
+    <button type="button" class="${saved?'saved':''}" data-act="saveRoute" data-type="${type}" data-id="${esc(id)}" data-label="${esc(label)}" data-meta="${esc(meta)}">${saved?'저장됨':'저장'}</button>
+  </div>`;
+}
 function homePathBar(){
   return `<div class="path-bar">
     <span>이름 입력</span><i></i><span>문헌/연원 기록 분기</span><i></i><span>지도 확인</span>
@@ -245,13 +269,24 @@ function bonOptions(s){
 }
 function searchModeSwitch(){
   const items = [
-    ['genealogy','족보 있는 성씨','본관 기록'],
-    ['name','족보 없는 성씨','성씨·연원 기록']
+    ['genealogy','기록으로 찾기','성씨와 본관을 알고 있을 때'],
+    ['name','넓게 둘러보기','성씨만 알거나 아직 잘 모를 때']
   ];
   return `<div class="mode-switch" role="tablist" aria-label="검색 모드">${items.map(([id,label,meta])=>`
     <button type="button" class="${searchMode===id?'on':''}" role="tab" aria-selected="${searchMode===id?'true':'false'}" data-act="searchMode" data-mode="${id}">
       <b>${label}</b><span>${meta}</span>
     </button>`).join('')}</div>`;
+}
+function trackQuickChips(){
+  const items = [
+    ['bon-unknown','본관을 몰라요'],
+    ['rare-name-record','희성·새 성씨'],
+    ['multicultural-name-record','다문화·귀화 이름'],
+    ['hwasan-lee','이주·정착 이야기']
+  ];
+  return `<div class="situation-chips" aria-label="넓게 둘러보기 상황 선택">
+    ${items.map(([id,label])=>`<button type="button" data-act="pickTrack" data-track="${id}">${label}</button>`).join('')}
+  </div>`;
 }
 function trackOptions(){
   const opts = nameTracks().map(t=>`<option value="${esc(t.id)}">${esc(trackGroup(t))} · ${esc(t.title)}</option>`).join('');
@@ -380,8 +415,23 @@ function businessImpactSection(mode){
       <i></i>
       <div><b>사업 수익</b><span>B2B 리포트·광고·제휴</span></div>
     </div>
+    <div class="sponsor-toggle">
+      <div><b>광고·협찬 스팟 보기</b><span>꺼도 학습 루트는 그대로 볼 수 있습니다.</span></div>
+      <button type="button" class="${sponsorVisible?'on':''}" data-act="toggleSponsor">${sponsorVisible?'켜짐':'보기'}</button>
+    </div>
+    ${sponsorVisible?sponsorSpotCards():''}
     <div class="risk-note">수익·방문 효과를 보장하지 않습니다. 광고·협찬 라벨을 표시하고, 개인 계보나 민감정보를 광고 타깃으로 쓰지 않는 방향으로 설계합니다.</div>
   </section>`;
+}
+function sponsorSpotCards(){
+  const spots = [
+    ['광고·협찬','전통시장 스토리 스팟','지역 루트 옆에 시장·골목 이야기를 붙입니다. 일반 추천과 분리 표시합니다.'],
+    ['제휴 테스트','한 그릇 기억 스팟','향토음식·노포·청년 가게를 지역 이야기 맥락으로 보여줍니다.'],
+    ['민간 파일럿','지역 관심 리포트','저장·퀴즈·지도 클릭 같은 관심 지표를 월간 제안 자료로 묶습니다.']
+  ];
+  return `<div class="sponsor-spots" aria-label="광고 협찬 스팟">
+    ${spots.map(s=>`<div class="sponsor-card"><span>${s[0]}</span><b>${s[1]}</b><p>${s[2]}</p></div>`).join('')}
+  </div>`;
 }
 
 /* ---- 홈 ---- */
@@ -457,7 +507,7 @@ function screenSearchResult(p){
       <p>${found.clans.length + found.tracks.length ? '기록 후보를 나눠 보여드립니다.' : '아직 바로 일치하는 기록은 없어요. 그래도 성씨·연원 기록 트랙에서 지역·유래·스토리 후보를 이어서 확인할 수 있습니다.'}</p>
     </section>
     ${found.clans.length?`<div class="row-head">본관 기록 후보</div>${clanRows}`:''}
-    <div class="row-head">${found.tracks.length?'성씨·연원 기록 후보':'아직 기록에 없는 이름'}</div>
+    <div class="row-head">${found.tracks.length?'성씨·연원 기록 후보':'아직 자료가 적은 이름'}</div>
     ${found.tracks.length?`<div class="track-list">${trackRows}</div>`:`<div class="card zero-card"><b>아직 본관 기록으로 단정하지 않습니다.</b><span>그래도 빈손이 아닙니다. 이름이 이어진 생활권, 가족 기억, 공개 통계에서 시작하는 세 가지 기록 길을 선택할 수 있습니다.</span>${fallbackTrackCards(query)}<button class="btn" data-act="goNameTrack" data-query="${displayQuery(query)}">안전하게 기록 시작</button></div>`}
     ${publicNotice()}
   </div>`;
@@ -589,6 +639,7 @@ function screenNameTrack(p){
         <p>${query?`「${displayQuery(query)}」 검색 결과가 아직 역사 문헌 기록에는 없습니다.`:'본관을 몰라도 시작할 수 있는 별도 길입니다.'} 이 화면은 성씨·생활권·공개자료를 모아 보는 안내이며, 특정 가계로 단정하지 않습니다.</p>
         ${factBadge('partial')}
       </section>
+      ${routeSavePanel('track',{id:`wide-${query||'start'}`, title:query?`${query} 넓게 둘러보기`:'넓게 둘러보기 루트', region:'성씨·연원 기록'})}
       ${trackPrinciples()}
       <div id="nameMap"></div>
       <div class="card origin"><h4>분류 안내</h4><p>검색에서 바로 잡히지 않는 이름은 본관 모름, 희성·새 성씨, 다문화·귀화 이름처럼 따로 분류합니다. 이 분류는 낮은 단계가 아니라 확인 방식의 차이입니다. 두 출처 이상으로 확인되기 전까지는 출처 등급을 올리지 않습니다.</p></div>
@@ -605,6 +656,7 @@ function screenNameTrack(p){
       <div class="meta">${trackGroup(track)} · ${track.type} · ${track.region}</div>
       <div>${storyBadge(track)} ${factBadge(track.verifyLevel)}</div>
     </section>
+    ${routeSavePanel('track', track)}
     <div id="nameMap"></div>
     <p class="story">${track.story}</p>
     <div class="card origin"><h4>${track.isGenealogy?'유래':'스토리텔링 방식'}</h4><p>${track.origin}</p>${storyBadge(track)} ${factBadge(track.verifyLevel)}</div>
@@ -636,6 +688,7 @@ function screenClan(p){
       <div>${c.verifyLevel==='draft' ? srcBadge('todo','작성 초안 · 확인 필요') : srcBadge('primary', `통계청 ${c.populationYear||'2015'} 인구주택총조사`)}</div>
       <button class="hanja-btn" data-act="hanja" data-surname="${c.surname}" data-bon="${c.bon}">${IC.pen} 한자 따라쓰기</button>
     </div>
+    ${routeSavePanel('clan', c)}
     ${also}
     <div class="seg" role="tablist">${seg}</div>
     <div id="subview">${subView(c, sub)}</div>
@@ -1012,8 +1065,11 @@ document.addEventListener('click', e=>{
   else if(a==='goMine') tab('mine');
   else if(a==='sub'){ curRoute().params.sub = el.dataset.sub; render(); }
   else if(a==='searchMode'){ searchMode = el.dataset.mode || 'genealogy'; render(); }
+  else if(a==='pickTrack'){ const sel=$('selTrack'); if(sel) sel.value=el.dataset.track; toast('이 출발점으로 안내합니다'); }
   else if(a==='search') doSearch();
   else if(a==='toggleMapLayer') toggleMapLayer(el.dataset.layer);
+  else if(a==='toggleSponsor'){ sponsorVisible=!sponsorVisible; localStorage.setItem('josang_sponsor_visible', JSON.stringify(sponsorVisible)); render(); }
+  else if(a==='saveRoute') saveRoute(el.dataset.type, el.dataset.id, el.dataset.label, el.dataset.meta);
   else if(a==='register') registerClan(el.dataset.surname, el.dataset.bon);
   else if(a==='unregister') unregister();
   else if(a==='notify') notify(el.dataset.feature);
@@ -1040,5 +1096,5 @@ document.addEventListener('click', e=>{
 /* ---- 부팅 ---- */
 render();
 if('serviceWorker' in navigator){
-  navigator.serviceWorker.register('sw.js?v=29').then(reg => reg.update()).catch(()=>{});
+  navigator.serviceWorker.register('sw.js?v=30').then(reg => reg.update()).catch(()=>{});
 }
