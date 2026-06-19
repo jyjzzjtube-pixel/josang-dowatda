@@ -455,8 +455,7 @@ function searchCard(mode){
   const sList = [...new Set(CLANS.map(c=>c.surname))];
   const sOpts = sList.map(s=>`<option value="${s}">${s} 씨</option>`).join('');
   return `<div class="search-card ${primary?'primary-search':''}">
-    ${primary?`<div class="search-kicker">15초 루트 생성</div><h2>확인 방식 선택</h2><p>${nameMode?'성씨만 알거나 아직 잘 모를 때도 지역·기억·공개 자료로 루트지도를 열 수 있어요.':'성씨와 본관을 알고 있을 때는 문헌 기록부터 차분히 확인합니다.'}</p>`:''}
-    ${searchModeSwitch()}
+    ${primary?`<div class="search-kicker">15초 루트 생성</div><h2>${nameMode?'족보가 아니어도 바로 찾기':'본관을 알아도, 몰라도 바로 찾기'}</h2><p>${nameMode?'성씨만 알거나 아직 잘 모를 때도 지역·기억·공개 자료로 루트지도를 열 수 있어요.':'성씨와 본관을 알고 있을 때는 문헌 기록부터 차분히 확인합니다.'}</p>`:searchModeSwitch()}
     <div class="free-field"><label>${nameMode?'아는 단서':'성씨·본관·지역'}</label><input id="freeName" aria-label="성씨 또는 이름 길 검색" placeholder="${nameMode?'예: 설, 화산 이, 가족이 오래 산 지역':'예: 전주 이, 경주 김, 안동'}"></div>
     ${nameMode?`<div class="search-row one">
       ${trackQuickChips()}
@@ -664,13 +663,33 @@ function bonOptions(s){
 }
 function searchModeSwitch(){
   const items = [
-    ['genealogy','문헌 기록으로 보기','성씨와 본관을 알고 있을 때'],
-    ['name','성씨·연원 기록으로 보기','성씨만 알거나 아직 잘 모를 때']
+    ['genealogy','족보 있는 성씨','성씨+본관 기본 선택'],
+    ['name','족보 없는·본관 모름','성씨·이름 루트 보기']
   ];
-  return `<div class="mode-switch" role="tablist" aria-label="검색 모드">${items.map(([id,label,meta])=>`
+  return `<div class="mode-switch-note">${searchMode==='genealogy'?'기본 모드 · 족보/문헌 기록부터 봅니다':'포용 모드 · 족보가 아니어도 뿌리 이야기를 봅니다'}</div>
+  <div class="mode-switch ${searchMode}" role="tablist" aria-label="검색 모드">${items.map(([id,label,meta])=>`
     <button type="button" class="${searchMode===id?'on':''}" role="tab" aria-selected="${searchMode===id?'true':'false'}" data-act="searchMode" data-mode="${id}">
       <b>${label}</b><span>${meta}</span>
     </button>`).join('')}</div>`;
+}
+function homeModeLauncher(){
+  return `<section class="home-mode-launcher">
+    <div><span>루트 보기 모드</span><b>알면 본관으로, 모르면 이름·지역으로</b></div>
+    ${searchModeSwitch()}
+  </section>`;
+}
+function homeRouteChips(){
+  const items = [
+    ['지도','전국 루트','region'],
+    ['맛집','진짜맛집','fun'],
+    ['관광','1박2일','fun'],
+    ['스토리','유래·퀴즈','name']
+  ];
+  return `<div class="home-route-chips" aria-label="홈 빠른 연결">
+    ${items.map(([label,meta,target])=>`<button type="button" data-act="${target==='region'?'tab':'homeCat'}" ${target==='region'?'data-tab="region"':`data-cat="${target}"`}>
+      <b>${label}</b><span>${meta}</span>
+    </button>`).join('')}
+  </div>`;
 }
 function trackQuickChips(){
   const items = [
@@ -782,7 +801,6 @@ function homeStudioHero(){
       <p class="hero-desc">성씨·연원 기록, 가족 질문, 여행 코스, 소상공인 스토리 스팟을 한 화면에서 시작합니다.</p>
     </div>
     ${rootGuideMascot()}
-    ${heroFeatureDock()}
   </section>`;
 }
 
@@ -795,9 +813,9 @@ function homeMapPreview(){
 function homeCategoryTabs(){
   const items = [
     ['start','루트카드','15초 결과'],
-    ['name','이름기록','본관 모를 때'],
-    ['fun','지역재미','맛집·관광'],
-    ['biz','사업모델','지역 활성화']
+    ['name','본관모름','이름·지역'],
+    ['fun','지도여행','맛집·관광'],
+    ['biz','지역스토리','광고·협력']
   ];
   return `<div class="home-category-tabs" role="tablist" aria-label="홈 카테고리">
     ${items.map(([id,label,meta])=>`<button type="button" class="${homeCategory===id?'on':''}" role="tab" aria-selected="${homeCategory===id?'true':'false'}" data-act="homeCat" data-cat="${id}">
@@ -833,6 +851,7 @@ function homeCategoryPanel(){
   if(homeCategory === 'fun') return `${regionalFunPanel()}${homeMapPreview()}`;
   if(homeCategory === 'biz') return `${localCommercePackagePanel()}${businessImpactSection('compact')}`;
   return `<section class="home-quick-panel">
+    ${instantRouteResult()}
     ${homeMapPreview()}
     ${quickRouteCards()}
     <button class="btn btn-line" data-act="homeCat" data-cat="name">본관을 모르는 이름도 보기</button>
@@ -937,12 +956,9 @@ function sponsorSpotCards(){
 function screenHome(){
   return `<div class="screen">
     ${homeStudioHero()}
+    ${homeModeLauncher()}
     ${searchCard('primary')}
-    ${homeFlowGuide()}
-    ${genealogySplitPanel()}
-    ${familyQuestionPanel('내 이름 루트')}
-    ${instantRouteResult()}
-    ${rootPassportPanel('내 이름 루트')}
+    ${homeRouteChips()}
     ${homeCategoryTabs()}
     ${homeCategoryPanel()}
     ${trustRail()}
