@@ -47,6 +47,7 @@ let authUser = loadSessionJSON('josang_authUser');
 let searchMode = 'genealogy';
 let homeCategory = 'start';
 let sponsorVisible = loadJSON('josang_sponsor_visible') === true;
+let marketingScenario = loadJSON('josang_marketing_scenario') || 'weekend';
 const PUBLIC_URL = 'https://korean-roots-journey.vercel.app/';
 const curRoute = () => stack[stack.length-1];
 const find = (s,b) => CLANS.find(c=>c.surname===s && c.bon===b);
@@ -203,7 +204,8 @@ function rootPassportPanel(label){
   </section>`;
 }
 function copyBusinessPitch(){
-  copyText(`조상이 도왔다 소상공인 스토리 패키지 샘플\n- 지역 루트 지도 핀\n- 스토리 카드와 쿠폰 QR\n- 가족 질문/뿌리여권 미션 연결\n- 광고·협찬 라벨 분리\n\n성과를 약속하지 않는 민간 파일럿 제안입니다.\n${PUBLIC_URL}`, '소상공인 패키지 문구를 복사했습니다');
+  const s = currentMarketingScenario();
+  copyText(`조상이 도왔다 지역 마케팅 제안 샘플\n- ${s.region} 성씨·연원 루트와 맛집·관광 스팟을 묶은 월간 파일럿\n- 소상공인 스토리 카드, 쿠폰 준비중 라벨, 지역 소개 게시판 연결\n- 지자체 생활인구 리포트 데모와 공개 데이터 연동 후보 분리\n- 광고·협찬 라벨 표시, 개인 계보나 민감정보 광고 타깃 사용 금지\n\n성과 보장 아님. 현재 수치는 가정값 기반 사업 시뮬레이션입니다.\n${PUBLIC_URL}`, '소상공인 패키지 문구를 복사했습니다');
 }
 function localCommercePackagePanel(){
   const packs = [
@@ -213,7 +215,7 @@ function localCommercePackagePanel(){
   ];
   return `<section class="commerce-package-panel">
     <div class="sec-label">소상공인 스토리 패키지 샘플</div>
-    <h3>재미가 지역 매출 제안서가 되는 구조</h3>
+    <h3>재미가 지역 관심 제안서가 되는 구조</h3>
     <p>가게를 일반 추천처럼 숨기지 않고, 광고·협찬 라벨을 붙인 스토리 스팟으로 분리합니다.</p>
     <div class="commerce-pack-grid">${packs.map(p=>`<article><span>${p[0]}</span><b>${p[1]}</b><p>${p[2]}</p></article>`).join('')}</div>
     <button type="button" class="report-copy" data-act="copyBusinessPitch">패키지 문구 복사</button>
@@ -455,7 +457,7 @@ function searchCard(mode){
   const sList = [...new Set(CLANS.map(c=>c.surname))];
   const sOpts = sList.map(s=>`<option value="${s}">${s} 씨</option>`).join('');
   return `<div class="search-card ${primary?'primary-search':''}">
-    ${primary?`<div class="search-kicker">15초 루트 생성</div><h2>${nameMode?'족보가 아니어도 바로 찾기':'본관을 알아도, 몰라도 바로 찾기'}</h2><p>${nameMode?'성씨만 알거나 아직 잘 모를 때도 지역·기억·공개 자료로 루트지도를 열 수 있어요.':'성씨와 본관을 알고 있을 때는 문헌 기록부터 차분히 확인합니다.'}</p>`:searchModeSwitch()}
+    ${primary?`<div class="search-kicker">무료 · 무계정 · 문화관광 루트</div><h2>${nameMode?'본관을 몰라도 이름에서 시작':'내 이름에서 시작하는 지도 여행'}</h2><p>${nameMode?'족보가 없어도 괜찮습니다. 이름·한자·가족 기억과 지역 단서로 나만의 뿌리 여행을 만들 수 있습니다.':'성씨와 본관을 알면 문헌 기록으로, 모르면 이름·한자·가족 기억과 지역 단서로 시작합니다.'}</p>`:searchModeSwitch()}
     <div class="free-field"><label>${nameMode?'아는 단서':'성씨·본관·지역'}</label><input id="freeName" aria-label="성씨 또는 이름 길 검색" placeholder="${nameMode?'예: 설, 화산 이, 가족이 오래 산 지역':'예: 전주 이, 경주 김, 안동'}"></div>
     ${nameMode?`<div class="search-row one">
       ${trackQuickChips()}
@@ -464,7 +466,7 @@ function searchCard(mode){
       <div class="field"><label>성씨</label><select id="selS" aria-label="성씨">${sOpts}</select></div>
       <div class="field"><label>본관</label><select id="selB" aria-label="본관">${bonOptions(sList[0])}</select></div>
     </div>`}
-    <button class="btn" data-act="search">${nameMode?'15초 루트카드 만들기':'15초 루트카드 만들기'}</button>
+    <button class="btn" data-act="search">루트카드 보기</button>
   </div>`;
 }
 function trustRail(){
@@ -552,6 +554,145 @@ function reportDemoPanel(){
 function copyReport(){
   const checked = Object.values(missionState()).filter(Boolean).length;
   copyText(`조상이 도왔다 지자체 생활인구 리포트 데모\n저장한 루트 ${savedRoutes().length}개\n뿌리여권 미션 체크 ${checked}개\n알림 신청 ${leads().length}개\n스토리 스팟 확인 ${sponsorVisible ? 1 : 0}회\n이 수치는 현재 브라우저의 민간 파일럿 테스트 값이며, 공공 인증이나 수익 보장을 의미하지 않습니다.`, '리포트 문구를 복사했습니다');
+}
+const MARKETING_SCENARIOS = [
+  {
+    id:'weekend',
+    label:'주말 가족',
+    region:'충주',
+    audience:1200,
+    mapRate:42,
+    saveRate:18,
+    couponRate:7,
+    storySlots:5,
+    storyFee:180000,
+    reportFee:700000,
+    reportCount:1,
+    theme:'충주 지씨·중앙탑·남한강·올뱅이국을 묶는 1박2일 가족 루트',
+    partner:'향토음식점·전통시장·체험 공방',
+    lesson:'본관을 모르는 이름도 성씨·연원 기록으로 안내해 참여 폭을 넓힙니다.'
+  },
+  {
+    id:'festival',
+    label:'축제 시즌',
+    region:'전주',
+    audience:2600,
+    mapRate:48,
+    saveRate:22,
+    couponRate:8,
+    storySlots:8,
+    storyFee:220000,
+    reportFee:1200000,
+    reportCount:1,
+    theme:'전주 루트·한옥마을·시장 골목·가족 질문을 묶는 주말 캠페인',
+    partner:'노포·청년 한식·숙박·체험',
+    lesson:'관광 정보와 광고 슬롯을 분리해 사용자가 신뢰할 수 있게 만듭니다.'
+  },
+  {
+    id:'education',
+    label:'교육 제휴',
+    region:'안동',
+    audience:900,
+    mapRate:36,
+    saveRate:26,
+    couponRate:5,
+    storySlots:4,
+    storyFee:150000,
+    reportFee:600000,
+    reportCount:1,
+    theme:'권씨 루트·월영교·한자 따라쓰기·퀴즈를 묶는 가족 학습 코스',
+    partner:'문화원·체험장·향토음식점',
+    lesson:'재미로 보는 운세·퀴즈는 학습 진입점이고, 계보 확정 도구가 아닙니다.'
+  }
+];
+const MARKETING_SOURCE_LINKS = [
+  ['한국관광 데이터랩','관광 빅데이터·지역관광 현황','https://datalab.visitkorea.or.kr/'],
+  ['공공데이터포털 관광정보','관광지·음식점 API 연동 후보','https://www.data.go.kr/data/15101578/openapi.do'],
+  ['소상공인24 백년가게','노포·소공인 스토리 후보 탐색','https://www.sbiz.or.kr/hdst/main/mainPage.do'],
+  ['개인정보 보호법 원칙','목적별 최소수집 점검','https://www.law.go.kr/LSW/lsInfoP.do?lsId=011357']
+];
+function currentMarketingScenario(){
+  return MARKETING_SCENARIOS.find(s=>s.id===marketingScenario) || MARKETING_SCENARIOS[0];
+}
+function won(n){
+  return `${Math.round(n).toLocaleString('ko-KR')}원`;
+}
+function marketingCalc(s){
+  const mapClicks = Math.round(s.audience * s.mapRate / 100);
+  const routeSaves = Math.round(s.audience * s.saveRate / 100);
+  const couponUses = Math.round(mapClicks * s.couponRate / 100);
+  const storyOpens = Math.round(mapClicks * .58);
+  const localReviews = Math.max(3, Math.round(couponUses * .22));
+  const packageValue = s.storySlots * s.storyFee + s.reportCount * s.reportFee;
+  return {mapClicks, routeSaves, couponUses, storyOpens, localReviews, packageValue};
+}
+function marketingSimulatorPanel(mode){
+  const compact = mode === 'compact';
+  const s = currentMarketingScenario();
+  const m = marketingCalc(s);
+  const metrics = [
+    ['월간 유입 가정', s.audience.toLocaleString('ko-KR')],
+    ['지도·스팟 클릭', m.mapClicks.toLocaleString('ko-KR')],
+    ['루트 저장', m.routeSaves.toLocaleString('ko-KR')],
+    ['쿠폰 준비중 전환', m.couponUses.toLocaleString('ko-KR')],
+    ['스토리 열람', m.storyOpens.toLocaleString('ko-KR')],
+    ['파일럿 제안액', won(m.packageValue)]
+  ];
+  const flow = [
+    ['흥미', '성씨·본관·성씨연원 검색'],
+    ['공부', '한자·스토리텔링·퀴즈'],
+    ['방문', '지도·맛집·관광·스탬프'],
+    ['사업화', '광고 라벨·리포트·제휴']
+  ];
+  return `<section class="marketing-sim-panel ${compact?'compact':''}">
+    <div class="sim-head">
+      <div>
+        <div class="sec-label">사업 시뮬레이션</div>
+        <h3>지역 마케팅 설계서</h3>
+        <p>사용자 재미를 지역 방문 이유로 바꾸고, 운영자는 소상공인 스토리 카드·지자체 리포트·제휴 캠페인으로 수익 실험을 합니다.</p>
+      </div>
+      <strong>성과 보장 아님</strong>
+    </div>
+    <div class="scenario-tabs" role="tablist" aria-label="월간 파일럿 가정">
+      ${MARKETING_SCENARIOS.map(x=>`<button type="button" class="${x.id===s.id?'on':''}" data-act="setMarketingScenario" data-scenario="${x.id}"><b>${x.label}</b><span>${x.region}</span></button>`).join('')}
+    </div>
+    <div class="scenario-summary">
+      <span>월간 파일럿 가정값</span>
+      <b>${s.theme}</b>
+      <p>${s.partner}을 광고·협찬 라벨로 분리하고, ${s.lesson}</p>
+    </div>
+    <div class="sim-metrics">${metrics.map(([k,v])=>`<div><b>${v}</b><span>${k}</span></div>`).join('')}</div>
+    <div class="sim-flow">${flow.map(([k,v])=>`<article><span>${k}</span><b>${v}</b></article>`).join('')}</div>
+    <div class="sim-products">
+      <article><span>소상공인</span><b>${s.storySlots}개 스토리 카드</b><p>가게 이야기, 메뉴, 위치, 쿠폰 준비중 라벨을 지역 루트 옆에 배치합니다.</p><em>가정 단가 ${won(s.storyFee)}</em></article>
+      <article><span>지자체·문화원</span><b>월간 리포트 ${s.reportCount}건</b><p>검색·저장·지도 클릭·댓글·스탬프를 관광 데이터와 분리해 설명합니다.</p><em>가정 단가 ${won(s.reportFee)}</em></article>
+      <article><span>운영자</span><b>제안 영업 루프</b><p>무료 이용자 행동을 보고, 지역별 제안서를 복사해 소상공인·기관 미팅에 사용합니다.</p><em>개인정보 최소수집</em></article>
+    </div>
+    <div class="source-strip">
+      <b>공개 데이터 연동 후보</b>
+      <div>${MARKETING_SOURCE_LINKS.map(([name,desc,url])=>`<a href="${url}" target="_blank" rel="noopener"><span>${name}</span><em>${desc}</em></a>`).join('')}</div>
+    </div>
+    <button type="button" class="report-copy" data-act="copyMarketingPlan">지역 제안서 문구 복사</button>
+    <p class="sim-disclaimer">가정값은 운영 시나리오를 이해하기 위한 예시입니다. 수익·방문 효과를 보장하지 않습니다. 실제 회원 기능은 테스트 모드이며, 외부 전송 전 개인정보 최소수집과 광고 표시 기준을 별도 점검합니다.</p>
+  </section>`;
+}
+function businessRoadmapPanel(){
+  const steps = [
+    ['1주차','지역 루트 10개','성씨·연원 기록, 지도 마커, 맛집·관광 링크를 우선 정리합니다.'],
+    ['2주차','소상공인 제안','노포·전통시장·체험장을 스토리 카드 후보로 모으고 광고 라벨을 설계합니다.'],
+    ['3주차','커뮤니티 테스트','회원가입·로그인 테스트, 댓글·지역 소개 게시판으로 실제 반응을 봅니다.'],
+    ['4주차','리포트 영업','지도 클릭·루트 저장·스탬프·댓글을 월간 제안서로 묶습니다.']
+  ];
+  return `<section class="business-roadmap">
+    <div class="sec-label">운영자 실행 순서</div>
+    <h3>재미에서 협력 실험까지 4주 운영판</h3>
+    <div>${steps.map(s=>`<article><span>${s[0]}</span><b>${s[1]}</b><p>${s[2]}</p></article>`).join('')}</div>
+  </section>`;
+}
+function copyMarketingPlan(){
+  const s = currentMarketingScenario();
+  const m = marketingCalc(s);
+  copyText(`조상이 도왔다 ${s.region} 지역 마케팅 설계서\n1. 주제: ${s.theme}\n2. 대상 파트너: ${s.partner}\n3. 월간 가정값: 유입 ${s.audience.toLocaleString('ko-KR')}명 / 지도 클릭 ${m.mapClicks.toLocaleString('ko-KR')} / 루트 저장 ${m.routeSaves.toLocaleString('ko-KR')} / 쿠폰 준비중 ${m.couponUses.toLocaleString('ko-KR')}\n4. 제안 상품: 소상공인 스토리 카드 ${s.storySlots}개, 지자체 생활인구 리포트 ${s.reportCount}건\n5. 파일럿 제안액 가정: ${won(m.packageValue)}\n6. 안전 조건: 광고·협찬 라벨 표시, 개인 계보 단정 금지, 개인정보 최소수집, 성과 보장 아님\n\n${PUBLIC_URL}`, '지역 마케팅 설계서 문구를 복사했습니다');
 }
 function feedbackCta(scope){
   const items = [
@@ -654,7 +795,7 @@ function fortunePanel(clan, track){
 }
 function homePathBar(){
   return `<div class="path-bar">
-    <span>이름 입력</span><i></i><span>확인 방식 선택</span><i></i><span>15초 루트카드</span>
+    <span>이름 입력</span><i></i><span>확인 방식 선택</span><i></i><span>루트카드 보기</span>
   </div>`;
 }
 function bonOptions(s){
@@ -663,10 +804,10 @@ function bonOptions(s){
 }
 function searchModeSwitch(){
   const items = [
-    ['genealogy','족보 있는 성씨','성씨+본관 기본 선택'],
-    ['name','족보 없는·본관 모름','성씨·이름 루트 보기']
+    ['genealogy','본관을 아는 경우','성씨+본관 문헌 기록'],
+    ['name','본관을 모르는 경우','이름·한자·가족 기억']
   ];
-  return `<div class="mode-switch-note">${searchMode==='genealogy'?'기본 모드 · 족보/문헌 기록부터 봅니다':'포용 모드 · 족보가 아니어도 뿌리 이야기를 봅니다'}</div>
+  return `<div class="mode-switch-note">${searchMode==='genealogy'?'기본 선택 · 족보·문헌 기록부터 봅니다':'포용 모드 · 족보가 없어도 뿌리 이야기를 봅니다'}</div>
   <div class="mode-switch ${searchMode}" role="tablist" aria-label="검색 모드">${items.map(([id,label,meta])=>`
     <button type="button" class="${searchMode===id?'on':''}" role="tab" aria-selected="${searchMode===id?'true':'false'}" data-act="searchMode" data-mode="${id}">
       <b>${label}</b><span>${meta}</span>
@@ -681,7 +822,7 @@ function homeModeLauncher(){
 function homeRouteChips(){
   const items = [
     ['지도','전국 루트','region'],
-    ['맛집','진짜맛집','fun'],
+    ['맛집','지역맛집','fun'],
     ['관광','1박2일','fun'],
     ['스토리','유래·퀴즈','name']
   ];
@@ -812,10 +953,11 @@ function homeMapPreview(){
 }
 function homeCategoryTabs(){
   const items = [
-    ['start','루트카드','15초 결과'],
-    ['name','본관모름','이름·지역'],
-    ['fun','지도여행','맛집·관광'],
-    ['biz','지역스토리','광고·협력']
+    ['start','루트','검색결과'],
+    ['play','놀거리','운세·퀴즈'],
+    ['learn','배움','한자·가족'],
+    ['fun','동네여행','맛집·지도'],
+    ['biz','협력모델','광고·리포트']
   ];
   return `<div class="home-category-tabs" role="tablist" aria-label="홈 카테고리">
     ${items.map(([id,label,meta])=>`<button type="button" class="${homeCategory===id?'on':''}" role="tab" aria-selected="${homeCategory===id?'true':'false'}" data-act="homeCat" data-cat="${id}">
@@ -833,10 +975,36 @@ function compactNameGuide(){
     <button class="btn btn-line" data-act="goNameTrack" data-query="">성씨·연원 기록 모두 보기</button>
   </section>`;
 }
+function homePlayPanel(){
+  const clan = find('이','전주') || CLANS[0];
+  const track = findTrack('bon-unknown') || nameTracks()[0];
+  return `<section class="play-panel">
+    <div class="sec-label">놀거리</div>
+    <h3>운세·퀴즈·스탬프로 가볍게 시작</h3>
+    <p>성씨와 본관은 운명을 정하지 않습니다. 재미 기능은 학습과 지역 여행으로 들어가는 입구입니다.</p>
+    ${fortunePanel(clan, track)}
+    ${routeQuizPanel(clan, null)}
+    ${missionPanel('home-play','오늘 할 일 3개')}
+  </section>`;
+}
+function homeLearningPanel(){
+  const clan = find('지','충주') || CLANS[0];
+  return `<section class="learning-panel">
+    <div class="sec-label">배움</div>
+    <h3>한자 따라쓰기, 이야기, 가족 질문</h3>
+    <p>획순서 가이드로 한 글자씩 따라쓰고, 전체 이름 한자 또는 한글 이름 따라쓰기를 선택할 수 있습니다.</p>
+    <div class="learning-actions">
+      <button type="button" data-act="hanja" data-surname="${clan.surname}" data-bon="${clan.bon}"><b>한자 따라쓰기</b><span>${clan.bonHanja} ${clan.surnameHanja}氏 · 획순서 가이드</span></button>
+      <button type="button" data-act="homeCat" data-cat="name"><b>본관을 모르는 경우</b><span>이름·한자·가족 기억부터 확인</span></button>
+    </div>
+    ${clanStoryBoard(clan)}
+    ${familyQuestionPanel('내 이름 루트')}
+  </section>`;
+}
 function regionalFunPanel(){
   return `<section class="fun-panel">
     <div class="sec-label">지역 재미</div>
-    <h3>맛집·관광·지역 유래를 한 번에</h3>
+    <h3>지역맛집·관광·지역 유래를 한 번에</h3>
     <p>이름에서 시작해 지역의 이야기, 하루 코스, 한 그릇 기억으로 이어집니다. 광고·협찬은 따로 표시합니다.</p>
     <div class="fun-grid">
       <div class="fun-card" data-act="goClan" data-surname="지" data-bon="충주"><span>충주 지씨 루트</span><b>중앙탑 · 탄금대 · 남한강</b><em>올뱅이국 · 꿩요리 · 사과</em></div>
@@ -848,8 +1016,10 @@ function regionalFunPanel(){
 }
 function homeCategoryPanel(){
   if(homeCategory === 'name') return compactNameGuide();
+  if(homeCategory === 'play') return homePlayPanel();
+  if(homeCategory === 'learn') return homeLearningPanel();
   if(homeCategory === 'fun') return `${regionalFunPanel()}${homeMapPreview()}`;
-  if(homeCategory === 'biz') return `${localCommercePackagePanel()}${businessImpactSection('compact')}`;
+  if(homeCategory === 'biz') return `${marketingSimulatorPanel('compact')}${localCommercePackagePanel()}${businessImpactSection('compact')}${businessRoadmapPanel()}`;
   return `<section class="home-quick-panel">
     ${instantRouteResult()}
     ${homeMapPreview()}
@@ -930,7 +1100,7 @@ function businessImpactSection(mode){
       <i></i>
       <div><b>지역 방문</b><span>코스 저장·쿠폰</span></div>
       <i></i>
-      <div><b>사업 수익</b><span>B2B 리포트·광고·제휴</span></div>
+      <div><b>협력 제안</b><span>B2B 리포트·광고·제휴</span></div>
     </div>
     <div class="sponsor-toggle">
       <div><b>스토리 스팟 보기</b><span>광고·협찬 라벨을 붙여도 학습 루트는 그대로 볼 수 있습니다.</span></div>
@@ -938,7 +1108,7 @@ function businessImpactSection(mode){
     </div>
     ${sponsorVisible?sponsorSpotCards():''}
     ${reportDemoPanel()}
-    <div class="risk-note">수익·방문 효과를 보장하지 않습니다. 광고·협찬 라벨을 표시하고, 개인 계보나 민감정보를 광고 타깃으로 쓰지 않는 방향으로 설계합니다.</div>
+    <div class="risk-note">방문·매출·선정 효과를 보장하지 않습니다. 광고·협찬 라벨을 표시하고, 개인 계보나 민감정보를 광고 타깃으로 쓰지 않는 방향으로 설계합니다.</div>
   </section>`;
 }
 function sponsorSpotCards(){
@@ -1011,8 +1181,8 @@ function routeBusinessPackage(){
     ['지자체','생활인구 리포트','검색·저장·지도 클릭·미션 체크를 지역 관심 지표로 묶습니다.']
   ];
   return `<section class="route-business-pack">
-    <div class="sec-label">사업 패키지</div>
-    <h3>사용자 재미가 지역 제안서가 되는 구조</h3>
+    <div class="sec-label">협력 패키지</div>
+    <h3>사용자 재미가 지역 관심 제안서가 되는 구조</h3>
     <div>${packs.map(p=>`<article><span>${p[0]}</span><b>${p[1]}</b><p>${p[2]}</p></article>`).join('')}</div>
   </section>`;
 }
@@ -1055,6 +1225,7 @@ function screenRouteResult(p){
     ${rootPassportPanel(routeTitle)}
     ${missionPanel(`route-${norm(routeTitle)}`,'이 루트로 찍는 뿌리여권')}
     ${routeBusinessPackage()}
+    ${marketingSimulatorPanel('compact')}
     ${localCommercePackagePanel()}
     ${communityBoardPanel(`route-${norm(routeTitle)}`)}
     ${businessImpactSection('compact')}
@@ -1154,12 +1325,13 @@ function screenRegion(){
     <section class="region-head">
       <div class="sec-label">지역 지도</div>
       <h2 class="scr-h">전국 루트 지도</h2>
-      <p>가문, 관광, 진짜맛집, 연원기록을 한 지도에서 켜고 끄며 봅니다. 마커를 누르면 상세내용이 바로 열립니다.</p>
+      <p>가문, 관광, 지역맛집 후보, 연원기록을 한 지도에서 켜고 끄며 봅니다. 마커를 누르면 상세내용이 바로 열립니다.</p>
     </section>
     ${worldMapSection()}
     ${rootPassportPanel('지역 스탬프')}
     ${regionCurationSection()}
     ${missionPanel('region','지도에서 고른 지역 미션')}
+    ${marketingSimulatorPanel()}
     ${businessImpactSection()}
     ${localCommercePackagePanel()}
     ${communityBoardPanel('region')}
@@ -1198,7 +1370,7 @@ function worldMapSection(){
     <div class="layer-controls four" aria-label="전국 지도 레이어">
       <button class="layer-toggle on" data-act="toggleMapLayer" data-layer="family"><span class="dot family"></span>가문</button>
       <button class="layer-toggle on" data-act="toggleMapLayer" data-layer="tour"><span class="dot tour"></span>관광</button>
-      <button class="layer-toggle on" data-act="toggleMapLayer" data-layer="food"><span class="dot food"></span>진짜맛집</button>
+      <button class="layer-toggle on" data-act="toggleMapLayer" data-layer="food"><span class="dot food"></span>지역맛집 후보</button>
       <button class="layer-toggle on" data-act="toggleMapLayer" data-layer="story"><span class="dot story"></span>연원기록</button>
     </div>
     <div id="worldMap"></div>
@@ -1381,7 +1553,7 @@ function subView(c, sub){
       <div class="layer-controls four" aria-label="지도 레이어">
         <button class="layer-toggle on" data-act="toggleMapLayer" data-layer="family"><span class="dot family"></span>가문 연고지</button>
         <button class="layer-toggle on" data-act="toggleMapLayer" data-layer="tour"><span class="dot tour"></span>관광지</button>
-        <button class="layer-toggle on" data-act="toggleMapLayer" data-layer="food"><span class="dot food"></span>진짜맛집</button>
+        <button class="layer-toggle on" data-act="toggleMapLayer" data-layer="food"><span class="dot food"></span>지역맛집 후보</button>
         <button class="layer-toggle on" data-act="toggleMapLayer" data-layer="story"><span class="dot story"></span>연원기록</button>
       </div>
       <div id="map"></div>
@@ -1470,13 +1642,13 @@ function mapFallback(el, msg){
   el.innerHTML = `<div class="map-fallback"><b>지도를 준비 중입니다</b><span>${msg}</span></div>`;
 }
 function pointTypeLabel(type){
-  return ({family:'가문', tour:'관광', food:'진짜맛집', story:'연원기록'})[type] || '지도';
+  return ({family:'가문', tour:'관광', food:'지역맛집 후보', story:'연원기록'})[type] || '지도';
 }
 function mapDetailShell(){
   return `<div id="mapDetailCard" class="map-detail-card empty" aria-live="polite">
     <span>지도 마커 상세</span>
     <b>마커를 누르면 상세내용이 여기에 열립니다</b>
-    <p>가문, 관광지, 진짜맛집, 연원기록을 색으로 구분하고 출처 등급을 같이 표시합니다.</p>
+    <p>가문, 관광지, 지역맛집 후보, 연원기록을 색으로 구분하고 출처 등급을 같이 표시합니다.</p>
   </div>`;
 }
 function mapPointListShell(){
@@ -1486,7 +1658,7 @@ function renderMapPointList(groups){
   const el = $('mapPointList');
   if(!el) return;
   MAP_POINT_STORE={};
-  const order = [['family','가문'],['tour','관광'],['food','진짜맛집'],['story','연원기록']];
+  const order = [['family','가문'],['tour','관광'],['food','지역맛집 후보'],['story','연원기록']];
   const html = order.map(([type,label])=>{
     const items = (groups[type] || []).filter(p=>Number.isFinite(p.lat)&&Number.isFinite(p.lng)).slice(0,6);
     if(!items.length) return '';
@@ -1968,6 +2140,7 @@ document.addEventListener('click', e=>{
   else if(a==='sub'){ curRoute().params.sub = el.dataset.sub; render(); }
   else if(a==='homeCat'){ homeCategory = el.dataset.cat || 'start'; render(); }
   else if(a==='searchMode'){ searchMode = el.dataset.mode || 'genealogy'; render(); }
+  else if(a==='setMarketingScenario'){ marketingScenario = el.dataset.scenario || 'weekend'; localStorage.setItem('josang_marketing_scenario', JSON.stringify(marketingScenario)); render(); }
   else if(a==='pickTrack'){ const sel=$('selTrack'); if(sel) sel.value=el.dataset.track; toast('이 출발점으로 안내합니다'); }
   else if(a==='search') doSearch();
   else if(a==='toggleMapLayer') toggleMapLayer(el.dataset.layer);
@@ -1981,6 +2154,7 @@ document.addEventListener('click', e=>{
   else if(a==='saveCommunityPost') saveCommunityPost(el.dataset.scope);
   else if(a==='copyFamilyHistory') copyFamilyHistoryCard();
   else if(a==='copyBusinessPitch') copyBusinessPitch();
+  else if(a==='copyMarketingPlan') copyMarketingPlan();
   else if(a==='openSavedRoute') openSavedRoute(el.dataset.key);
   else if(a==='removeRoute') removeRoute(el.dataset.key);
   else if(a==='toggleMission') toggleMission(el.dataset.id);
@@ -2014,5 +2188,5 @@ document.addEventListener('click', e=>{
 /* ---- 부팅 ---- */
 render();
 if('serviceWorker' in navigator){
-  navigator.serviceWorker.register('sw.js?v=40').then(reg => reg.update()).catch(()=>{});
+  navigator.serviceWorker.register('sw.js?v=42').then(reg => reg.update()).catch(()=>{});
 }

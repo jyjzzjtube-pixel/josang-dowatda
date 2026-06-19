@@ -1,9 +1,9 @@
 /* 조상이 도왔다 — 서비스워커(앱 셸 캐시, 설치형 PWA) */
-const CACHE = 'josang-v41';
+const CACHE = 'josang-v42';
 const ASSETS = [
-  './','./index.html','./styles.css?v=41','./app.js?v=41','./data.js?v=41',
+  './','./index.html','./styles.css?v=42','./app.js?v=42','./data.js?v=42',
   './manifest.webmanifest','./icon.svg',
-  './vendor/leaflet/leaflet.css?v=41','./vendor/leaflet/leaflet.js?v=41',
+  './vendor/leaflet/leaflet.css?v=42','./vendor/leaflet/leaflet.js?v=42',
   './vendor/leaflet/images/layers.png','./vendor/leaflet/images/layers-2x.png',
   './vendor/leaflet/images/marker-icon.png','./vendor/leaflet/images/marker-icon-2x.png',
   './vendor/leaflet/images/marker-shadow.png'
