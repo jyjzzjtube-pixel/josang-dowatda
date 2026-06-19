@@ -219,6 +219,63 @@ function localCommercePackagePanel(){
     <button type="button" class="report-copy" data-act="copyBusinessPitch">패키지 문구 복사</button>
   </section>`;
 }
+function platformSearchLinks(name, region){
+  const q = encodeURIComponent(`${region || ''} ${name || ''}`.trim());
+  const foodQ = encodeURIComponent(`${region || ''} ${name || ''} 맛집 후기`.trim());
+  return `<div class="platform-links">
+    <a href="https://korean.visitkorea.or.kr/search/search_list.do?keyword=${q}" target="_blank" rel="noopener">관광공사 검색</a>
+    <a href="https://search.naver.com/search.naver?query=${foodQ}" target="_blank" rel="noopener">후기·인플루언서 검색</a>
+  </div>`;
+}
+function communityPosts(){ return loadJSON('josang_communityPosts') || []; }
+function saveCommunityPost(scope){
+  const input = $('communityPostInput');
+  const value = (input?.value || '').trim();
+  if(!authUser){ toast('테스트 로그인 후 댓글을 남길 수 있습니다'); return; }
+  if(!value){ toast('댓글이나 소개글을 입력해주세요'); return; }
+  const a = communityPosts();
+  a.unshift({scope:scope || 'home', name:authName(), body:value, ts:Date.now()});
+  saveLocalJSON('josang_communityPosts', a.slice(0,50));
+  toast('커뮤니티 게시판에 저장했습니다');
+  render();
+}
+function communityBoardPanel(scope){
+  const posts = communityPosts().filter(p=>!scope || p.scope===scope || p.scope==='home').slice(0,4);
+  return `<section class="community-board">
+    <div class="sec-label">회원 댓글·지역 소개 게시판</div>
+    <h3>내가 아는 가족 이야기와 동네 스팟을 더하기</h3>
+    <p>테스트 로그인한 사용자만 이 기기에 댓글을 남깁니다. 외부 전송은 아직 없습니다.</p>
+    <label class="family-answer-box">
+      <span>${authUser?'소개글 작성':'테스트 로그인 필요'}</span>
+      <textarea id="communityPostInput" rows="3" placeholder="예: 충주 중앙탑 근처 산책길이 좋아요. 근처 올뱅이국도 함께 보면 좋아요."></textarea>
+    </label>
+    <button type="button" class="family-save-btn" data-act="saveCommunityPost" data-scope="${esc(scope || 'home')}">게시판에 추가</button>
+    <div class="community-posts">${posts.length ? posts.map(p=>`<article><span>${esc(p.name)}</span><b>${esc(p.scope)}</b><p>${esc(p.body)}</p></article>`).join('') : `<div class="saved-empty"><b>아직 소개글이 없습니다</b><span>가족 이야기, 지역 팁, 맛집·관광 후기 링크를 차례로 모을 공간입니다.</span></div>`}</div>
+  </section>`;
+}
+function homeFlowGuide(){
+  const steps = [
+    ['1','이름 입력','성씨·본관을 알면 문헌 기록으로, 모르면 성씨·연원 기록으로 시작합니다.'],
+    ['2','기록 나누기','족보 기록과 본관 미확인 기록을 분리해서 보여줍니다.'],
+    ['3','뜻·한자·스토리','한자 뜻풀이, 이름 한자, 따라쓰기, 3장 스토리를 확인합니다.'],
+    ['4','지도·커뮤니티','맛집·관광 링크, 방문 스탬프, 회원 소개글로 지역을 확장합니다.']
+  ];
+  return `<section class="flow-guide">
+    <div class="sec-label">사용 순서</div>
+    <h3>처음 쓰는 사람도 이 순서대로 보면 됩니다</h3>
+    <div class="flow-steps">${steps.map(s=>`<article><span>${s[0]}</span><b>${s[1]}</b><p>${s[2]}</p></article>`).join('')}</div>
+  </section>`;
+}
+function genealogySplitPanel(){
+  return `<section class="split-panel">
+    <button type="button" data-act="searchMode" data-mode="genealogy">
+      <span>족보·문헌 기록</span><b>성씨와 본관을 알 때</b><p>시조·본관 유래·한자·연고지·여행지로 연결합니다.</p>
+    </button>
+    <button type="button" data-act="searchMode" data-mode="name">
+      <span>성씨·연원 기록</span><b>본관을 모르거나 다른 이름일 때</b><p>한자·생활권·가족 기억을 단정 없이 나눠 봅니다.</p>
+    </button>
+  </section>`;
+}
 function openSavedRoute(key){
   const item = savedRoutes().find(x=>x.key===key);
   if(!item){ toast('저장한 루트를 찾지 못했습니다'); return; }
@@ -695,6 +752,39 @@ function instantRouteResult(){
     </div>
   </section>`;
 }
+function rootGuideMascot(){
+  return `<div class="root-guide" aria-label="루트 가이드 캐릭터">
+    <div class="guide-orbit">
+      <i class="guide-hat"></i>
+      <i class="guide-ribbon"></i>
+      <span>姓</span>
+    </div>
+    <b>루트 가이드</b>
+    <em>기록·여행·가족질문</em>
+  </div>`;
+}
+function heroFeatureDock(){
+  const items = [
+    ['가족 질문','오늘 1문장'],
+    ['뿌리여권','내 기록장'],
+    ['지도 스탬프','방문 저장'],
+    ['동네 소비','스토리 스팟']
+  ];
+  return `<div class="hero-feature-dock">${items.map(([k,v])=>`<button type="button" data-act="${k==='지도 스탬프'?'tab':'homeCat'}" ${k==='지도 스탬프'?'data-tab="region"':`data-cat="${k==='동네 소비'?'biz':'start'}"`}>
+    <b>${k}</b><span>${v}</span>
+  </button>`).join('')}</div>`;
+}
+function homeStudioHero(){
+  return `<section class="hero studio-hero">
+    <div class="studio-copy">
+      <div class="hero-badge">오늘 내 이름으로 여는 루트</div>
+      <h1 class="hero-title">가족에게 물어보고<br><em>지도에 찍는 뿌리여권</em></h1>
+      <p class="hero-desc">성씨·연원 기록, 가족 질문, 여행 코스, 소상공인 스토리 스팟을 한 화면에서 시작합니다.</p>
+    </div>
+    ${rootGuideMascot()}
+    ${heroFeatureDock()}
+  </section>`;
+}
 
 function homeMapPreview(){
   return `<div class="home-map-preview" data-act="tab" data-tab="region">
@@ -846,13 +936,10 @@ function sponsorSpotCards(){
 /* ---- 홈 ---- */
 function screenHome(){
   return `<div class="screen">
-    <section class="hero command-hero">
-      <div class="hero-badge">무료로 내 루트 보기</div>
-      <h1 class="hero-title">내 이름이 닿는 지역을<br><em>지도에서 바로 확인</em></h1>
-      <p class="hero-desc">성씨·본관 기록은 기록대로, 본관을 모르는 이름은 성씨·연원 기록으로 안내합니다.</p>
-      ${homePathBar()}
-    </section>
+    ${homeStudioHero()}
     ${searchCard('primary')}
+    ${homeFlowGuide()}
+    ${genealogySplitPanel()}
     ${familyQuestionPanel('내 이름 루트')}
     ${instantRouteResult()}
     ${rootPassportPanel('내 이름 루트')}
@@ -953,6 +1040,7 @@ function screenRouteResult(p){
     ${missionPanel(`route-${norm(routeTitle)}`,'이 루트로 찍는 뿌리여권')}
     ${routeBusinessPackage()}
     ${localCommercePackagePanel()}
+    ${communityBoardPanel(`route-${norm(routeTitle)}`)}
     ${businessImpactSection('compact')}
     ${feedbackCta('routeResult')}
     ${publicNotice()}
@@ -1027,7 +1115,7 @@ function screenMine(){
     <div class="action">
       ${hook(IC.tree,'우리 기록 노트 만들기','가족 기억을 이 브라우저에서 테스트 정리','가계도')}
       ${hook(IC.book,'가문 이야기 책','우리 가문 이야기를 책으로','가문역사책')}
-      ${hook(IC.crown,'기록 보관 알림','문헌 열람이 아니라 테스트 저장·정정 알림','기록보관')}
+      ${hook(IC.ticket,'스탬프북 보관 알림','문헌 열람이 아니라 테스트 저장·정정 알림','기록보관')}
     </div>
     <button class="btn btn-line" data-act="unregister" style="margin-top:8px">등록 가문 변경</button>
   </div>`;
@@ -1058,6 +1146,7 @@ function screenRegion(){
     ${missionPanel('region','지도에서 고른 지역 미션')}
     ${businessImpactSection()}
     ${localCommercePackagePanel()}
+    ${communityBoardPanel('region')}
     <div class="row-head compact">다음 연결 기능</div>
     ${items}
     <div class="card" style="margin-top:14px;text-align:center">
@@ -1418,6 +1507,7 @@ function showMapDetail(p){
       <span>좌표: ${Number.isFinite(p.lat)?p.lat.toFixed(4):'-'}, ${Number.isFinite(p.lng)?p.lng.toFixed(4):'-'}</span>
     </div>
     <div class="map-commerce-line"><span>방문 스탬프</span><span>쿠폰 준비중</span><span>광고·협찬 라벨 분리</span></div>
+    ${platformSearchLinks(p.name, p.region || p.desc || '')}
     <div class="map-detail-actions">${mapDetailAction(p)}</div>`;
   setTimeout(()=>card.scrollIntoView({block:'nearest',behavior:'smooth'}), 40);
 }
@@ -1872,6 +1962,7 @@ document.addEventListener('click', e=>{
   else if(a==='copyRoute') copyRouteCard(el.dataset.type, el.dataset.id, el.dataset.label, el.dataset.meta);
   else if(a==='copyFamilyQuestion') copyFamilyQuestion(el.dataset.label, el.dataset.question);
   else if(a==='saveFamilyAnswer') saveFamilyAnswer(el.dataset.label, el.dataset.question);
+  else if(a==='saveCommunityPost') saveCommunityPost(el.dataset.scope);
   else if(a==='copyFamilyHistory') copyFamilyHistoryCard();
   else if(a==='copyBusinessPitch') copyBusinessPitch();
   else if(a==='openSavedRoute') openSavedRoute(el.dataset.key);
@@ -1907,5 +1998,5 @@ document.addEventListener('click', e=>{
 /* ---- 부팅 ---- */
 render();
 if('serviceWorker' in navigator){
-  navigator.serviceWorker.register('sw.js?v=39').then(reg => reg.update()).catch(()=>{});
+  navigator.serviceWorker.register('sw.js?v=40').then(reg => reg.update()).catch(()=>{});
 }
