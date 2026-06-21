@@ -1,5 +1,5 @@
 /* 조상이 도왔다 — 서비스워커(앱 셸 캐시, 설치형 PWA) */
-const BUILD = '44';
+const BUILD = '45';
 const CACHE = `josang-v${BUILD}`;
 const HANZI_DATA = [
   '%E5%85%89','%E5%85%A8','%E5%8D%97','%E5%90%8D','%E5%90%B3','%E5%92%B8','%E5%9D%A1','%E5%9F%8E','%E5%A4%A9','%E5%A7%9C',

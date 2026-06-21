@@ -63,7 +63,7 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-vis
 .bottomnav{flex:0 0 auto;display:flex;background:rgba(255,255,255,.96);border-top:1px solid var(--line);
   padding:8px 6px calc(8px + env(safe-area-inset-bottom))}
 .bottomnav .nav{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:4px 0;
-  cursor:pointer;color:var(--faint);font-size:11px;font-weight:500;transition:color .18s}
+  cursor:pointer;color:var(--faint);font-size:10.4px;font-weight:600;line-height:1.12;transition:color .18s}
 .bottomnav .nav .ic{width:24px;height:24px;display:flex;align-items:center;justify-content:center}
 .bottomnav .nav .ic svg{width:24px;height:24px}
 .bottomnav .nav.on{color:var(--brand);font-weight:600}
@@ -76,7 +76,7 @@ h2.scr-h{font-size:24px;font-weight:700;letter-spacing:0;color:var(--ink);line-h
 .muted{color:var(--sub)}
 .card{background:var(--surface);border-radius:var(--r-lg);padding:20px;margin-bottom:14px;box-shadow:var(--sh-1)}
 .tag{display:inline-flex;align-items:center;background:var(--surface-2);border-radius:999px;
-  padding:8px 14px;font-size:13.5px;margin:0 7px 8px 0;color:var(--ink);font-weight:500}
+  padding:8px 14px;font-size:13.5px;margin:0 7px 8px 0;color:var(--ink);font-weight:600}
 
 /* 버튼 — 주칠 그라데이션 CTA */
 .btn{width:100%;min-height:52px;font-size:16px;font-weight:600;color:#fff;background:var(--grad-cta);border:none;
@@ -190,7 +190,7 @@ h2.scr-h{font-size:24px;font-weight:700;letter-spacing:0;color:var(--ink);line-h
 .search-row select{cursor:pointer;
   background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='none' stroke='%238A8478' stroke-width='2'><path d='M2 4l4 4 4-4'/></svg>");
   background-repeat:no-repeat;background-position:right 12px center}
-.free-field input::placeholder{color:#A59D8E;font-weight:500}
+.free-field input::placeholder{color:#A59D8E;font-weight:400}
 .search-row select:focus,.free-field input:focus{outline:none;border-color:var(--brand)}
 .search-help{font-size:11.5px;color:var(--sub);line-height:1.45;margin:-5px 1px 10px}
 .mode-switch-note{display:inline-flex;align-items:center;width:max-content;max-width:100%;font-size:11px;font-weight:700;
@@ -431,14 +431,15 @@ h2.scr-h{font-size:24px;font-weight:700;letter-spacing:0;color:var(--ink);line-h
 .home-map-preview button{border:0;border-radius:999px;background:var(--blue);color:#fff;padding:10px 12px;font-size:12px;font-weight:700;white-space:nowrap}
 .home-category-tabs{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:5px;margin:12px 0;padding:5px;border:1px solid var(--line);
   background:var(--surface-2);border-radius:16px}
-.home-category-tabs button{min-width:0;border:0;background:transparent;border-radius:11px;padding:9px 3px;cursor:pointer;text-align:center;color:var(--sub)}
-.home-category-tabs button b{display:block;font-size:11.2px;font-weight:700;line-height:1.18;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.home-category-tabs button span{display:block;font-size:8.8px;font-weight:700;line-height:1.18;margin-top:3px;opacity:.76;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.home-category-tabs::-webkit-scrollbar{display:none}
+.home-category-tabs button{min-width:0;border:0;background:transparent;border-radius:11px;padding:9px 2px;cursor:pointer;text-align:center;color:var(--sub)}
+.home-category-tabs button b{display:block;font-size:10.6px;font-weight:700;line-height:1.16;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.home-category-tabs button span{display:block;font-size:8px;font-weight:600;line-height:1.16;margin-top:3px;opacity:.76;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .home-category-tabs button.on{background:#fff;color:var(--brand-text);box-shadow:var(--sh-1)}
 .home-quick-panel{display:grid;gap:10px;margin:10px 0 12px}
-.compact-panel,.fun-panel,.play-panel,.learning-panel{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:16px;margin:12px 0;box-shadow:var(--sh-1)}
-.compact-panel h3,.fun-panel h3,.play-panel h3,.learning-panel h3{font-size:20px;font-weight:700;line-height:1.32;color:var(--ink);letter-spacing:0}
-.compact-panel p,.fun-panel p,.play-panel>p,.learning-panel>p{font-size:12.8px;color:var(--sub);line-height:1.6;margin:7px 0 12px}
+.compact-panel,.fun-panel,.play-panel,.learning-panel,.place-panel,.fun-hero{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:16px;margin:12px 0;box-shadow:var(--sh-1)}
+.compact-panel h3,.fun-panel h3,.play-panel h3,.learning-panel h3,.place-panel h3{font-size:20px;font-weight:700;line-height:1.32;color:var(--ink);letter-spacing:0}
+.compact-panel p,.fun-panel p,.play-panel>p,.learning-panel>p,.place-panel>p,.fun-hero p{font-size:12.8px;color:var(--sub);line-height:1.6;margin:7px 0 12px}
 .play-panel .fortune-panel,.play-panel .route-quiz-panel,.play-panel .mission-panel{margin-left:0;margin-right:0}
 .learning-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0 13px}
 .learning-actions button{border:1px solid var(--line);background:var(--surface-2);border-radius:14px;padding:12px;text-align:left;cursor:pointer}
@@ -452,6 +453,26 @@ h2.scr-h{font-size:24px;font-weight:700;letter-spacing:0;color:var(--ink);line-h
 .fun-card span{font-size:11px;font-weight:700;color:rgba(255,255,255,.72);margin-bottom:6px}
 .fun-card b{font-size:17px;font-weight:700;line-height:1.25}
 .fun-card em{font-style:normal;font-size:11.5px;color:rgba(255,255,255,.78);line-height:1.35;margin-top:5px}
+.home-today-fun{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;background:linear-gradient(135deg,#211B14 0%,#2D2418 100%);
+  color:var(--on-ink);border-radius:18px;padding:15px 16px;margin:10px 0 12px;box-shadow:var(--sh-ink)}
+.home-today-fun span{display:inline-flex;font-size:11px;font-weight:700;color:var(--gold-bright);background:rgba(226,188,99,.12);border-radius:999px;padding:5px 8px;margin-bottom:7px}
+.home-today-fun b{display:block;font-size:16px;font-weight:700;line-height:1.32}
+.home-today-fun p{font-size:12px;color:var(--on-ink-sub);line-height:1.45;margin-top:4px}
+.today-fun-actions{display:grid;gap:7px;min-width:92px}
+.today-fun-actions button{border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.08);color:#fff;border-radius:12px;padding:10px 9px;font-size:11px;font-weight:700;cursor:pointer}
+.today-fun-actions button:first-child{background:#fff;color:var(--ink)}
+.place-grid{display:grid;grid-template-columns:1fr;gap:9px;margin:12px 0}
+.place-card{border:1px solid var(--line);background:var(--surface-2);border-radius:15px;padding:13px;box-shadow:var(--sh-1)}
+.place-card-top{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+.place-card-top>span{font-size:11px;font-weight:700;color:var(--brand-text)}
+.place-card.food .place-card-top>span{color:var(--green)}
+.place-card b{display:block;font-size:16px;font-weight:700;color:var(--ink);line-height:1.32}
+.place-card p{font-size:12.2px;color:var(--ink-soft);line-height:1.5;margin-top:5px}
+.place-card em{display:block;font-style:normal;font-size:10.8px;color:var(--sub);line-height:1.4;margin-top:7px}
+.place-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:11px}
+.place-actions a,.place-actions button{border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:999px;padding:8px 10px;font-size:11.2px;font-weight:700;text-decoration:none;cursor:pointer}
+.place-actions button{color:var(--brand-text);border-color:#E2C5BB}
+.quiz-quick-grid{margin-top:10px}
 .region-shot{display:grid;grid-template-columns:112px 1fr;gap:13px;align-items:stretch;background:#fff;border:1px solid var(--line);
   border-radius:18px;padding:12px;margin:10px 0 14px;box-shadow:var(--sh-1);cursor:pointer}
 .shot-art{min-height:118px;border-radius:14px;background:linear-gradient(150deg,#1C1812 0%,#2A241B 58%,#A83E2C 130%);
@@ -650,7 +671,7 @@ h2.scr-h{font-size:24px;font-weight:700;letter-spacing:0;color:var(--ink);line-h
 .detail-hero .nm{font-family:var(--serif);font-size:27px;font-weight:700;letter-spacing:0;color:var(--on-ink)}
 .detail-hero .hanja{font-size:13px;color:var(--gold-bright);letter-spacing:0;margin-top:6px;font-weight:600;
   text-shadow:0 1px 2px rgba(0,0,0,.4)}
-.detail-hero .tg{font-size:15px;color:var(--on-ink-sub);margin-top:14px;line-height:1.6;font-weight:500;
+.detail-hero .tg{font-size:15px;color:var(--on-ink-sub);margin-top:14px;line-height:1.6;font-weight:400;
   max-width:300px;margin-left:auto;margin-right:auto}
 .detail-hero .meta{font-size:12.5px;color:var(--on-ink-faint);margin-top:14px;letter-spacing:0;line-height:1.55}
 /* 다크 전시면 위 배지·버튼 오버라이드 */

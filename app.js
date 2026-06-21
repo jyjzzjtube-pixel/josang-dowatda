@@ -20,9 +20,10 @@ const IC = {
 };
 const TABS = [
   {id:'home', label:'홈', icon:IC.home},
-  {id:'explore', label:'탐색', icon:IC.explore},
-  {id:'mine', label:'내 가문', icon:IC.mine},
-  {id:'region', label:'지역', icon:IC.region}
+  {id:'explore', label:'성씨찾기', icon:IC.explore},
+  {id:'region', label:'지도', icon:IC.region},
+  {id:'fun', label:'재미', icon:IC.gift},
+  {id:'mine', label:'보관함', icon:IC.mine}
 ];
 const SUBS = ['뿌리','인물','문화재','여행','맛'];
 /* 한자 훈음(뜻·소리) — 데이터셋 성씨·본관 한자 (한문→한글 해석) */
@@ -48,7 +49,7 @@ let searchMode = 'genealogy';
 let homeCategory = 'start';
 let sponsorVisible = loadJSON('josang_sponsor_visible') === true;
 let marketingScenario = loadJSON('josang_marketing_scenario') || 'weekend';
-const BUILD = '44';
+const BUILD = '45';
 const PUBLIC_URL = 'https://korean-roots-journey.vercel.app/';
 const curRoute = () => stack[stack.length-1];
 const find = (s,b) => CLANS.find(c=>c.surname===s && c.bon===b);
@@ -267,17 +268,17 @@ function communityBoardPanel(scope){
 }
 function homeFlowGuide(){
   const steps = [
-    ['1','족보·문헌 기록','본관을 알면 성씨와 본관을 골라 공개 기록 루트로 봅니다.','homeCat','start'],
-    ['2','족보 없는 성씨','본관 모름·희성·귀화성은 성씨·연원 기록으로 따로 봅니다.','homeCat','name'],
-    ['3','지도와 지역 재미','가문 연고지, 관광지, 노포·향토음식, 연원기록을 눌러 상세를 봅니다.','tab','region'],
-    ['4','뿌리여권 저장','가족 질문, 한자·한글 따라쓰기, 댓글과 방문 스탬프를 모읍니다.','tab','mine']
+    ['1','성씨 입력','내 성씨나 지역 단서를 먼저 넣습니다. 예: 전주 이, 충주 지, 안동 권','homeCat','start'],
+    ['2','본관 선택/모름','본관을 알면 선택하고, 모르면 성씨·연원 기록으로 따로 봅니다.','homeCat','name'],
+    ['3','기록 등급 확인','공개자료 확인·자료 확인 단계·전승을 배지로 나눠 봅니다.','homeCat','start'],
+    ['4','지도·맛집·퀴즈','관광지, 함께 둘러볼 음식, 30초 퀴즈로 이어갑니다.','tab','fun']
   ];
   return `<section class="flow-guide">
-    <div class="flow-title"><span>사용 순서</span><b>처음 온 사람도 4번만 누르면 이해됩니다</b></div>
+    <div class="flow-title"><span>성씨로 알아보는 순서</span><b>입력부터 놀거리까지 4단계</b></div>
     <div class="flow-steps">${steps.map(([n,t,b,act,target])=>`<button type="button" data-act="${act}" ${act==='tab'?`data-tab="${target}"`:`data-cat="${target}"`}>
       <span>${n}</span><b>${t}</b><p>${b}</p>
     </button>`).join('')}</div>
-    <div class="flow-rail" aria-label="앱 사용 흐름"><span>지도</span><i></i><span>스토리</span><i></i><span>맛집</span><i></i><span>관광</span><i></i><span>커뮤니티</span><i></i><span>사업화</span></div>
+    <div class="flow-rail" aria-label="앱 사용 흐름"><span>성씨</span><i></i><span>본관</span><i></i><span>출처</span><i></i><span>관광</span><i></i><span>맛집</span><i></i><span>퀴즈</span></div>
   </section>`;
 }
 function genealogySplitPanel(){
@@ -475,6 +476,7 @@ function renderScreen(t){
     case 'explore': return screenExplore();
     case 'mine': return screenMine();
     case 'region': return screenRegion();
+    case 'fun': return screenFun();
     case 'clan': return screenClan(t.params);
     case 'nameTrack': return screenNameTrack(t.params||{});
     case 'routeResult': return screenRouteResult(t.params||{});
@@ -491,7 +493,7 @@ function searchCard(mode){
   const sOpts = sPairs.map(c=>`<option value="${c.surname}">${c.surname} (${c.surnameHanja}) 씨</option>`).join('');
   const firstSurname = sPairs[0]?.surname || CLANS[0]?.surname || '';
   return `<div class="search-card ${primary?'primary-search':''}">
-    ${primary?`<div class="search-kicker">무료 · 무계정 · 문화관광 루트</div><h2>${nameMode?'본관을 몰라도 이름에서 시작':'내 이름에서 시작하는 지도 여행'}</h2><p>${nameMode?'족보가 없어도 괜찮습니다. 이름·한자·가족 기억과 지역 단서로 나만의 뿌리 여행을 만들 수 있습니다.':'성씨와 본관을 알면 문헌 기록으로, 모르면 이름·한자·가족 기억과 지역 단서로 시작합니다.'}</p>`:searchModeSwitch()}
+    ${primary?`<div class="search-kicker">무료 · 무계정 · 문화관광 루트</div><h2>${nameMode?'본관을 몰라도 이름에서 시작':'내 성씨로 오늘 갈 곳 찾기'}</h2><p>${nameMode?'족보가 없어도 괜찮습니다. 이름·한자·가족 기억과 지역 단서로 나만의 뿌리 여행을 만들 수 있습니다.':'성씨와 본관을 알면 문헌 기록으로, 모르면 이름·한자·가족 기억과 지역 단서로 시작합니다.'}</p>`:searchModeSwitch()}
     <div class="free-field"><label>${nameMode?'아는 단서':'성씨·본관·지역'}</label><input id="freeName" aria-label="성씨 또는 이름 길 검색" placeholder="${nameMode?'예: 설, 화산 이, 가족이 오래 산 지역':'예: 전주 이, 경주 김, 안동'}"></div>
     ${nameMode?`<div class="search-row one">
       ${trackQuickChips()}
@@ -500,7 +502,7 @@ function searchCard(mode){
       <div class="field"><label>성씨</label><select id="selS" aria-label="성씨">${sOpts}</select></div>
       <div class="field"><label>본관</label><select id="selB" aria-label="본관">${bonOptions(firstSurname)}</select></div>
     </div><div class="search-help">한자가 다르면 다른 성씨일 수 있습니다. 예: 趙·曺</div>`}
-    <button class="btn" data-act="search">루트카드 보기</button>
+    <button class="btn" data-act="search">내 성씨로 오늘 갈 곳 찾기</button>
   </div>`;
 }
 function trustRail(){
@@ -1009,17 +1011,64 @@ function homeMapPreview(){
 }
 function homeCategoryTabs(){
   const items = [
-    ['start','루트','검색결과'],
-    ['play','놀거리','운세·퀴즈'],
-    ['learn','배움','한자·가족'],
-    ['fun','동네여행','맛집·지도'],
-    ['biz','협력모델','광고·리포트']
+    ['start','성씨','본관찾기'],
+    ['name','본관모름','연원기록'],
+    ['tour','관광지','함께 볼 곳'],
+    ['food','맛집','음식 권역'],
+    ['quiz','퀴즈','30초 놀이']
   ];
   return `<div class="home-category-tabs" role="tablist" aria-label="홈 카테고리">
     ${items.map(([id,label,meta])=>`<button type="button" class="${homeCategory===id?'on':''}" role="tab" aria-selected="${homeCategory===id?'true':'false'}" data-act="homeCat" data-cat="${id}">
       <b>${label}</b><span>${meta}</span>
     </button>`).join('')}
   </div>`;
+}
+function pointLookupUrl(p){
+  if(p?.sourceUrl) return p.sourceUrl;
+  const q = encodeURIComponent(`${p?.name || ''} ${p?.type === 'food' ? '음식 영업 여부' : '관광'}`.trim());
+  return p?.type === 'food'
+    ? `https://search.naver.com/search.naver?query=${q}`
+    : `https://korean.visitkorea.or.kr/search/search_list.do?keyword=${q}`;
+}
+function curatedMapPoints(type, limit){
+  return Object.entries(MAP_POINT_CATALOG)
+    .map(([name,p])=>({...p,name}))
+    .filter(p=>p.type===type)
+    .sort((a,b)=>{
+      const rank = {verified:0, legend:1, partial:2, draft:3};
+      return (rank[a.verifyLevel]??4) - (rank[b.verifyLevel]??4) || a.name.localeCompare(b.name,'ko');
+    })
+    .slice(0, limit || 6);
+}
+function placeCard(p){
+  const linkLabel = p.type === 'food' ? '출처·영업 확인' : '출처 검색';
+  const note = p.type === 'food'
+    ? (p.isVenue ? '방문 전 영업시간·휴무 확인' : '개별 점포 추천이 아닌 음식권역 표시')
+    : '방문 전 공식 관광·운영 정보 확인';
+  return `<article class="place-card ${p.type}">
+    <div class="place-card-top"><span>${pointTypeLabel(p.type,p)}</span>${factBadge(p.verifyLevel || 'partial')}</div>
+    <b>${esc(p.name)}</b>
+    <p>${esc(p.detail || p.desc || '상세 설명을 준비 중입니다.')}</p>
+    <em>${note}</em>
+    <div class="place-actions">
+      <a href="${esc(pointLookupUrl(p))}" target="_blank" rel="noopener">${linkLabel}</a>
+      <button type="button" data-act="tab" data-tab="region">지도에서 보기</button>
+    </div>
+  </article>`;
+}
+function homeTodayFunCard(){
+  const clan = find('이','전주') || CLANS[0];
+  return `<section class="home-today-fun">
+    <div>
+      <span>오늘의 재미 카드</span>
+      <b>운명이 아니라, 오늘 가볍게 여는 이야기입니다</b>
+      <p>운세는 역사·가계 설명과 분리된 오락 기능입니다. 퀴즈와 지역 한 컷으로 바로 이어집니다.</p>
+    </div>
+    <div class="today-fun-actions">
+      <button type="button" data-act="tab" data-tab="fun">오늘 운세</button>
+      <button type="button" data-act="openQuiz" data-qtype="clan" data-surname="${esc(clan.surname)}" data-bon="${esc(clan.bon)}">30초 퀴즈</button>
+    </div>
+  </section>`;
 }
 function compactNameGuide(){
   const tracks = ['ji-name-record','bon-unknown','rare-name-record','multicultural-name-record'].map(findTrack).filter(Boolean);
@@ -1056,6 +1105,24 @@ function homePlayPanel(){
     ${missionPanel('home-play','오늘 할 일 3개')}
   </section>`;
 }
+function homeQuizPanel(){
+  const clan = find('지','충주') || CLANS[0];
+  return `<section class="play-panel">
+    <div class="sec-label">퀴즈</div>
+    <h3>30초 뿌리 퀴즈로 바로 빠져들기</h3>
+    <p>정답은 “자료 기준”으로 표시합니다. 개인 가계나 혈통을 확정하는 문제가 아닙니다.</p>
+    ${routeQuizPanel(clan, null)}
+    <div class="quick-grid quiz-quick-grid">
+      <div class="quick-card" data-act="openQuiz" data-qtype="clan" data-surname="${clan.surname}" data-bon="${clan.bon}">
+        <span>내 성씨 한자 맞히기</span><b>${clan.bonHanja} ${clan.surnameHanja}氏</b><em>기록 기준 · 바로 시작</em>
+      </div>
+      <div class="quick-card alt" data-act="tab" data-tab="region">
+        <span>오늘의 지역 한 컷</span><b>지도에서 문제 찾기</b><em>관광지·맛집 마커로 이어보기</em>
+      </div>
+    </div>
+    ${missionPanel('home-quiz','퀴즈 후 이어갈 3가지')}
+  </section>`;
+}
 function homeLearningPanel(){
   const clan = find('지','충주') || CLANS[0];
   return `<section class="learning-panel">
@@ -1083,11 +1150,32 @@ function regionalFunPanel(){
     ${missionPanel('home-fun','오늘 하나만 해보는 지역 미션')}
   </section>`;
 }
+function homeTourPanel(){
+  const points = curatedMapPoints('tour', 6);
+  return `<section class="place-panel tour">
+    <div class="sec-label">관광지</div>
+    <h3>성씨 루트와 함께 둘러볼 곳</h3>
+    <p>지도 마커와 연결된 관광지를 모았습니다. 운영 정보는 방문 전 공식 페이지에서 다시 확인하세요.</p>
+    <div class="place-grid">${points.map(placeCard).join('')}</div>
+    ${homeMapPreview()}
+  </section>`;
+}
+function homeFoodPanel(){
+  const points = curatedMapPoints('food', 6);
+  return `<section class="place-panel food">
+    <div class="sec-label">맛집</div>
+    <h3>함께 둘러볼 노포·향토음식</h3>
+    <p>과장된 맛집 표현으로 단정하지 않습니다. 개별 점포는 출처와 영업 여부 확인이 필요한 자료 확인 단계로 표시합니다.</p>
+    <div class="place-grid">${points.map(placeCard).join('')}</div>
+    ${homeMapPreview()}
+  </section>`;
+}
 function homeCategoryPanel(){
   if(homeCategory === 'name') return compactNameGuide();
-  if(homeCategory === 'play') return homePlayPanel();
+  if(homeCategory === 'quiz') return homeQuizPanel();
   if(homeCategory === 'learn') return homeLearningPanel();
-  if(homeCategory === 'fun') return `${regionalFunPanel()}${homeMapPreview()}`;
+  if(homeCategory === 'tour') return homeTourPanel();
+  if(homeCategory === 'food') return homeFoodPanel();
   if(homeCategory === 'biz') return `${marketingSimulatorPanel('compact')}${localCommercePackagePanel()}${businessImpactSection('compact')}${businessRoadmapPanel()}`;
   return `<section class="home-quick-panel">
     ${instantRouteResult()}
@@ -1095,6 +1183,24 @@ function homeCategoryPanel(){
     ${quickRouteCards()}
     <button class="btn btn-line" data-act="homeCat" data-cat="name">본관을 모르는 이름도 보기</button>
   </section>`;
+}
+
+function screenFun(){
+  const clan = find('이','전주') || CLANS[0];
+  const track = findTrack('bon-unknown') || nameTracks()[0];
+  return `<div class="screen">
+    <section class="fun-hero">
+      <div class="sec-label">재미</div>
+      <h2 class="scr-h">퀴즈·운세·지역 한 컷</h2>
+      <p>운명이 아니라, 오늘 가볍게 여는 이야기입니다. 재미 기능은 학습과 여행의 입구이며 계보 인증으로 쓰지 않습니다.</p>
+    </section>
+    ${routeQuizPanel(clan, null)}
+    ${fortunePanel(clan, track)}
+    ${todayRegionShot()}
+    ${regionalFunPanel()}
+    ${missionPanel('fun-tab','재미 탭에서 오늘 할 일')}
+    ${publicNotice()}
+  </div>`;
 }
 
 function todayRegionShot(){
@@ -1195,12 +1301,13 @@ function sponsorSpotCards(){
 function screenHome(){
   return `<div class="screen">
     ${homeStudioHero()}
-    ${homeModeLauncher()}
     ${searchCard('primary')}
-    ${homeFlowGuide()}
-    ${inclusionStarterStrip()}
     ${homeCategoryTabs()}
-    ${homeCategoryPanel()}
+    ${homeFlowGuide()}
+    ${homeTodayFunCard()}
+    <div id="homeCategoryOutput">${homeCategoryPanel()}</div>
+    ${homeModeLauncher()}
+    ${inclusionStarterStrip()}
     ${trustRail()}
     ${publicNotice()}
     <div class="neutral-note">성씨와 본관은 나를 설명하는 여러 결 중 하나일 뿐입니다. 모든 성씨와 뿌리는 동등하며, 가문에 높고 낮음은 없습니다.</div>
@@ -1754,7 +1861,7 @@ function renderMapPointList(groups){
 function mapDetailAction(p){
   const actions = [];
   actions.push(`<button type="button" data-act="stampPlace" data-name="${esc(p.name || '지역 스팟')}" data-type="${esc(p.type || 'place')}">방문 스탬프</button>`);
-  if(p.sourceUrl) actions.push(`<a href="${esc(p.sourceUrl)}" target="_blank" rel="noopener">출처 열기</a>`);
+  if(p.sourceUrl || p.type === 'tour' || p.type === 'food') actions.push(`<a href="${esc(pointLookupUrl(p))}" target="_blank" rel="noopener">출처·운영 확인</a>`);
   if(p.surname && p.bon) actions.push(`<button type="button" data-act="goClan" data-surname="${esc(p.surname)}" data-bon="${esc(p.bon)}">관련 가문 보기</button>`);
   if(p.trackId) actions.push(`<button type="button" data-act="goNameTrack" data-track="${esc(p.trackId)}">연원기록 보기</button>`);
   return actions.join('');
@@ -2262,7 +2369,11 @@ document.addEventListener('click', e=>{
   else if(a==='goNameTrack') go('nameTrack',{track:el.dataset.track, query:el.dataset.query||''});
   else if(a==='goMine') tab('mine');
   else if(a==='sub'){ curRoute().params.sub = el.dataset.sub; render(); }
-  else if(a==='homeCat'){ homeCategory = el.dataset.cat || 'start'; render(); }
+  else if(a==='homeCat'){
+    homeCategory = el.dataset.cat || 'start';
+    render();
+    setTimeout(()=>$('homeCategoryOutput')?.scrollIntoView({block:'start', behavior:'smooth'}), 40);
+  }
   else if(a==='searchMode'){ searchMode = el.dataset.mode || 'genealogy'; render(); }
   else if(a==='setMarketingScenario'){ marketingScenario = el.dataset.scenario || 'weekend'; localStorage.setItem('josang_marketing_scenario', JSON.stringify(marketingScenario)); render(); }
   else if(a==='pickTrack'){ const sel=$('selTrack'); if(sel) sel.value=el.dataset.track; toast('이 출발점으로 안내합니다'); }
