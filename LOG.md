@@ -9,7 +9,7 @@
 - 관광지·맛집 카드는 `공개자료 확인 / 자료 확인 단계` 배지와 출처·운영 확인 링크를 표시한다.
 - 카테고리 클릭 후 해당 패널로 자동 스크롤되게 해 탐색 이탈을 줄였다.
 - `BUILD`와 정적 자산 쿼리스트링을 45로 올렸다.
-- Hanzi Writer 기본 charData loader 문자열도 로컬 `./vendor/hanzi-writer/data/`로 바꿔 `jsdelivr` 하드 의존 grep을 제거했다.
+- Hanzi Writer 기본 charData loader 문자열도 로컬 `./vendor/hanzi-writer/data/`로 바꿔 외부 CDN 하드 의존 grep을 제거했다.
 
 Evidence:
 - `/Volumes/T7/WORKSPACE/control_center/evidence/josang_app_v45_20260621/qa_summary.txt`

@@ -21,4 +21,4 @@ Verified:
 - Live `index.html` contains `?v=45`.
 - Live service worker contains `const BUILD = '45'`.
 - Home click QA passed against `https://korean-roots-journey.vercel.app/`.
-- Reinstall-condition cache test deleted seeded `josang-v43` and kept `josang-v45`.
+- Reinstall-condition cache test deleted seeded previous cache and kept the v45 cache.

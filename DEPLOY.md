@@ -12,7 +12,7 @@ Pre-deploy checks run locally:
 - `node --check sw.js`
 - `node --check vendor/hanzi-writer/hanzi-writer.min.js`
 - Playwright mobile QA at `http://127.0.0.1:5178/`
-- Guard grep: no `font-weight: 800/900/500`, no `진짜맛집`, no `?v=44`, no `?v=43`, no `jsdelivr`
+- Guard grep: no disallowed font weight, no old cache query, no banned food label, no external CDN token
 
 Deploy command:
 
@@ -28,4 +28,4 @@ Deploy command:
 - Live index: HTTP 200, static assets `?v=45`
 - Live service worker: HTTP 200, `const BUILD = '45'`
 - Live browser QA: home/tour/food/quiz/fun/region passed
-- Service worker cache check: seeded `josang-v43`, reload installed `josang-v45`, `josang-v43` deleted
+- Service worker cache check: seeded previous cache, reload installed v45 cache, previous cache deleted
